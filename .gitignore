@@ -1,0 +1,26 @@
+# Datos privados de sesiones — NUNCA subir a GitHub
+data/sessions.json
+data/*.json
+
+# Credenciales y secretos
+*.env
+.env
+secrets.json
+*_credentials.json
+*_secret*.json
+token*.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# macOS
+.DS_Store
+.AppleDouble
+
+# Logs
+*.log
+/tmp/
