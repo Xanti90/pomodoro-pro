@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pomodoro Pro</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <div class="logo">🍅 Pomodoro Pro</div>
+    <div class="nav-tabs">
+      <button class="nav-btn active" onclick="mostrarVista('timer')">Temporizador</button>
+      <button class="nav-btn" onclick="mostrarVista('stats')">Estadísticas</button>
+    </div>
+  </nav>
+
+  <!-- ══════════════════════════════════ VISTA TIMER ══ -->
+  <div id="vista-timer" class="vista">
+
+    <!-- Selector de categoría -->
+    <div class="card category-card">
+      <p class="label">¿En qué vas a trabajar?</p>
+      <div class="category-grid" id="category-grid">
+        <button class="cat-btn active" data-cat="Estudio UNED"    onclick="seleccionarCat(this)">📚 Estudio UNED</button>
+        <button class="cat-btn"        data-cat="Trabajo Freelance" onclick="seleccionarCat(this)">💼 Freelance</button>
+        <button class="cat-btn"        data-cat="Libro KDP"       onclick="seleccionarCat(this)">✍️ Libro KDP</button>
+        <button class="cat-btn"        data-cat="Proyectos IA"    onclick="seleccionarCat(this)">🤖 Proyectos IA</button>
+        <button class="cat-btn"        data-cat="Personal"        onclick="seleccionarCat(this)">🌱 Personal</button>
+        <button class="cat-btn"        data-cat="Otro"            onclick="seleccionarCat(this)">⚡ Otro</button>
+      </div>
+      <input type="text" id="nota-input" class="nota-input" placeholder="Nota opcional: ¿qué exactamente? (ej: Tema 3 Historia Antigua)">
+    </div>
+
+    <!-- Timer principal -->
+    <div class="card timer-card">
+      <div class="mode-pills">
+        <button class="mode-pill active" id="pill-trabajo"       onclick="cambiarModo('trabajo')">Trabajo</button>
+        <button class="mode-pill"        id="pill-descanso-corto" onclick="cambiarModo('descanso-corto')">Descanso corto</button>
+        <button class="mode-pill"        id="pill-descanso-largo" onclick="cambiarModo('descanso-largo')">Descanso largo</button>
+      </div>
+
+      <div class="ring-container">
+        <svg class="ring" viewBox="0 0 280 280">
+          <circle class="ring-bg"   cx="140" cy="140" r="120"/>
+          <circle class="ring-fill" cx="140" cy="140" r="120" id="ring-fill"/>
+        </svg>
+        <div class="timer-display">
+          <span id="timer-time">25:00</span>
+          <span id="timer-label">Trabaja</span>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button class="btn-control btn-secondary" onclick="resetTimer()" title="Reiniciar">↺</button>
+        <button class="btn-control btn-primary"   id="btn-play" onclick="toggleTimer()">▶</button>
+        <button class="btn-control btn-secondary" onclick="saltarSesion()" title="Saltar">⏭</button>
+      </div>
+
+      <div class="session-info">
+        <span class="info-pill">🍅 <span id="pomodoro-count">0</span> hoy</span>
+        <span class="info-pill">📅 Ronda <span id="ronda-count">1</span>/4</span>
+        <span id="categoria-display" class="info-pill cat-active">📚 Estudio UNED</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══════════════════════════════════ VISTA STATS ══ -->
+  <div id="vista-stats" class="vista hidden">
+
+    <div class="stats-header">
+      <h2>Mis Estadísticas</h2>
+      <p class="stats-sub">Resumen de tu productividad</p>
+    </div>
+
+    <!-- Tarjetas resumen -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon">🍅</div>
+        <div class="stat-value" id="stat-total">0</div>
+        <div class="stat-label">Pomodoros totales</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">⏱️</div>
+        <div class="stat-value" id="stat-horas">0h</div>
+        <div class="stat-label">Horas de enfoque</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🔥</div>
+        <div class="stat-value" id="stat-racha">0</div>
+        <div class="stat-label">Días de racha</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">📅</div>
+        <div class="stat-value" id="stat-hoy">0</div>
+        <div class="stat-label">Pomodoros hoy</div>
+      </div>
+    </div>
+
+    <!-- Gráficos -->
+    <div class="charts-row">
+      <div class="card chart-card">
+        <h3>Últimos 7 días</h3>
+        <canvas id="chart-dias"></canvas>
+      </div>
+      <div class="card chart-card">
+        <h3>Tiempo por categoría</h3>
+        <canvas id="chart-cats"></canvas>
+      </div>
+    </div>
+
+    <!-- Historial -->
+    <div class="card historial-card">
+      <h3>Historial reciente</h3>
+      <div id="historial-lista" class="historial-lista">
+        <p class="empty-msg">Aún no hay sesiones registradas. ¡Empieza tu primer Pomodoro!</p>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
