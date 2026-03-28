@@ -12,7 +12,7 @@ const MODOS = {
 const CIRCUNFERENCIA = 754; // 2 * PI * 120
 
 let modo           = 'trabajo';
-let categoria      = 'Estudio UNED';
+let categoria      = 'Certificación IA';
 let segundosRestantes = 25 * 60;
 let segundosTotales   = 25 * 60;
 let corriendo      = false;
