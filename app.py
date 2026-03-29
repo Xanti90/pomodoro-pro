@@ -6,9 +6,9 @@ Autor: Santiago Jiménez
 import json
 import subprocess
 from pathlib import Path
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from typing import Any, Dict, List
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request  # type: ignore[import-untyped]
 
 app = Flask(__name__)
 

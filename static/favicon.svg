@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Hoja verde -->
+  <ellipse cx="50" cy="18" rx="6" ry="12" fill="#2ecc71" transform="rotate(-20 50 18)"/>
+  <ellipse cx="50" cy="18" rx="6" ry="12" fill="#27ae60" transform="rotate(20 50 18)"/>
+  <ellipse cx="50" cy="16" rx="3" ry="8"  fill="#2ecc71"/>
+  <!-- Tallo -->
+  <rect x="48" y="10" width="4" height="10" rx="2" fill="#27ae60"/>
+  <!-- Cuerpo del tomate -->
+  <circle cx="50" cy="60" r="36" fill="#e74c3c"/>
+  <!-- Brillo -->
+  <ellipse cx="38" cy="44" rx="9" ry="6" fill="rgba(255,255,255,0.25)" transform="rotate(-30 38 44)"/>
+  <!-- Sombra inferior -->
+  <ellipse cx="50" cy="78" rx="28" ry="12" fill="#c0392b"/>
+  <!-- Surcos del tomate -->
+  <path d="M50 24 Q30 45 32 68" stroke="#c0392b" stroke-width="2" fill="none" opacity="0.5"/>
+  <path d="M50 24 Q70 45 68 68" stroke="#c0392b" stroke-width="2" fill="none" opacity="0.5"/>
+</svg>
