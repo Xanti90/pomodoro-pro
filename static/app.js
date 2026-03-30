@@ -880,6 +880,7 @@ function renderRanking(ranking) {
       `<span class="medal-badge medal-${m}">${rankMedalSVG[m] || ''}</span>`
     ).join('');
     const flag     = u.country_code ? `<span class="rank-flag">${countryFlag(u.country_code)}</span>` : '';
+    const proBadge = u.is_pro ? `<span class="pro-crown" title="Focumo PRO"><svg width="12" height="12" viewBox="0 0 24 24" fill="#FBBF24" stroke="#F59E0B" stroke-width="1.5"><path d="M3 18h18l-2-8-4 4-3-8-3 8-4-4z"/></svg></span>` : '';
     const avatar   = u.avatar_url
       ? `<img src="${u.avatar_url}" class="rank-avatar" alt="${u.name}">`
       : `<div class="rank-avatar-text">${(u.name || 'U')[0].toUpperCase()}</div>`;
@@ -890,7 +891,7 @@ function renderRanking(ranking) {
         <div class="rank-pos">${rankDisp}</div>
         ${avatar}
         <div class="rank-info">
-          <div class="rank-name">${flag}${u.name} ${medBadges}${u.es_yo ? ` <span class="rank-yo">${t('tuIndicador')}</span>` : ''}</div>
+          <div class="rank-name">${flag}${u.name}${proBadge} ${medBadges}${u.es_yo ? ` <span class="rank-yo">${t('tuIndicador')}</span>` : ''}</div>
           <div class="rank-time">${tiempo} ${t('tiempoEnfoque')}</div>
         </div>
         <div class="rank-score">${u.pomodoros}

@@ -678,7 +678,7 @@ def leaderboard():
     mes_fin = hoy.isoformat()
     db      = get_db()
     rows    = db.execute("""
-        SELECT u.id, u.name, u.avatar_url, u.country_code,
+        SELECT u.id, u.name, u.avatar_url, u.country_code, u.plan,
                COUNT(s.id) as pomodoros,
                SUM(s.duracion) as minutos
         FROM users u
@@ -694,6 +694,7 @@ def leaderboard():
         medallas = db.execute(
             "SELECT tipo FROM medals WHERE user_id=? ORDER BY mes DESC LIMIT 3", (uid,)
         ).fetchall()
+        u_is_pro = (r["plan"] == "pro") if "plan" in r.keys() else False
         result.append({
             "rank":         i + 1,
             "user_id":      uid,
@@ -704,6 +705,7 @@ def leaderboard():
             "minutos":      r["minutos"]   or 0,
             "medals":       [m["tipo"] for m in medallas],
             "es_yo":        uid == session["user_id"],
+            "is_pro":       u_is_pro,
         })
     return jsonify(result)
 
@@ -929,6 +931,7 @@ def leagues_data():
             "name":      r["name"],
             "avatar_url": r["avatar_url"] or "",
             "plan":      r["plan"],
+            "is_pro":    r["plan"] == "pro",
             "pomodoros": r["pomodoros"],
             "minutos":   r["minutos"],
             "liga":      liga,
@@ -956,6 +959,85 @@ def leagues_data():
             my_data["pts_para_subir"] = 0
 
     return jsonify({"ranking": result[:100], "yo": my_data, "total": total})
+
+
+# ══════════════════════════════════════════════════════════════
+# CHECKOUT / MONETIZACIÓN
+# ══════════════════════════════════════════════════════════════
+
+STRIPE_PAYMENT_LINK = os.environ.get("STRIPE_PAYMENT_LINK", "")
+
+@app.route("/checkout")
+@login_required
+def checkout_page():
+    """
+    Inicia el flujo de pago PRO.
+    Si STRIPE_PAYMENT_LINK está configurado, redirige a Stripe.
+    Si no, muestra la página de mock checkout.
+    """
+    user = get_current_user()
+    if is_pro(user):
+        return redirect(url_for("app_page"))
+    if STRIPE_PAYMENT_LINK:
+        return redirect(STRIPE_PAYMENT_LINK)
+    return render_template("checkout.html", user=user,
+                           google_enabled=GOOGLE_ENABLED,
+                           stripe_link=STRIPE_PAYMENT_LINK)
+
+
+@app.route("/checkout/mock-success")
+@login_required
+def checkout_mock_success():
+    """
+    Simula un pago exitoso en desarrollo/demo.
+    Activa PRO permanente para el usuario actual.
+    En producción con Stripe real, usar webhook /stripe/webhook.
+    """
+    uid = session["user_id"]
+    db  = get_db()
+    db.execute("UPDATE users SET plan='pro', pro_expires_at=NULL WHERE id=?", (uid,))
+    db.commit()
+    return redirect(url_for("app_page") + "?pro=activated")
+
+
+@app.route("/stripe/webhook", methods=["POST"])
+def stripe_webhook():
+    """
+    Webhook real de Stripe (para cuando se configure el key de producción).
+    Valida la firma y activa plan PRO en DB.
+    """
+    stripe_secret = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
+    payload       = request.get_data(as_text=True)
+    sig_header    = request.headers.get("Stripe-Signature", "")
+
+    if stripe_secret:
+        try:
+            import hmac, hashlib
+            # Stripe usa t=timestamp,v1=signature en el header
+            parts = {k: v for k, v in (p.split("=", 1) for p in sig_header.split(","))}
+            ts    = parts.get("t", "")
+            sig   = parts.get("v1", "")
+            expected = hmac.new(
+                stripe_secret.encode(), f"{ts}.{payload}".encode(), hashlib.sha256
+            ).hexdigest()
+            if not hmac.compare_digest(expected, sig):
+                return jsonify({"error": "invalid signature"}), 400
+        except Exception:
+            return jsonify({"error": "webhook error"}), 400
+
+    try:
+        event = request.get_json(force=True)
+        if event.get("type") == "checkout.session.completed":
+            cs    = event["data"]["object"]
+            email = cs.get("customer_email") or cs.get("customer_details", {}).get("email")
+            if email:
+                db = get_db()
+                db.execute("UPDATE users SET plan='pro', pro_expires_at=NULL WHERE email=?", (email,))
+                db.commit()
+    except Exception as e:
+        print(f"[webhook] Error: {e}")
+
+    return jsonify({"ok": True})
 
 
 # ══════════════════════════════════════════════════════════════

@@ -49,21 +49,24 @@
       theme: {
         extend: {
           colors: {
-            cream:   { DEFAULT:'#FBF3E3', dark:'#F0E2C8' },
-            caramel: { 300:'#F2C050', 400:'#D4924F', 500:'#B8733A', 600:'#9A5A28', 700:'#7A4018', 900:'#3A2000' },
+            night:  { 50:'#EDEAE5', 100:'#B0ADAA', 400:'#787878', 600:'#484848', 800:'#13131A', 900:'#0D0D10' },
+            flame:  { 300:'#FF8C5A', 400:'#FF7A42', 500:'#FF5C1A', 600:'#E04800' },
+            amber:  { 300:'#FDE68A', 400:'#FBBF24' },
           },
           fontFamily: {
-            sans: ['-apple-system','BlinkMacSystemFont','SF Pro Display','Segoe UI','sans-serif'],
+            sans: ['Inter','-apple-system','BlinkMacSystemFont','SF Pro Display','Segoe UI','sans-serif'],
           },
           animation: {
-            'float':   'float 3s ease-in-out infinite',
-            'glow':    'glow 2s ease-in-out infinite',
-            'slide-up':'slide-up .6s ease forwards',
+            'float':   'float 3.5s ease-in-out infinite',
+            'glow':    'glow 2.5s ease-in-out infinite',
+            'slide-up':'slide-up .7s cubic-bezier(.16,1,.3,1) forwards',
+            'pulse-ring': 'pulse-ring 2s ease-out infinite',
           },
           keyframes: {
-            float:    { '0%,100%':{transform:'translateY(0)'}, '50%':{transform:'translateY(-10px)'} },
-            glow:     { '0%,100%':{opacity:'1'}, '50%':{opacity:'.6'} },
-            'slide-up':{ from:{opacity:'0',transform:'translateY(30px)'}, to:{opacity:'1',transform:'translateY(0)'} },
+            float:       { '0%,100%':{transform:'translateY(0)'}, '50%':{transform:'translateY(-12px)'} },
+            glow:        { '0%,100%':{opacity:'1'}, '50%':{opacity:'.5'} },
+            'slide-up':  { from:{opacity:'0',transform:'translateY(36px)'}, to:{opacity:'1',transform:'translateY(0)'} },
+            'pulse-ring':{ '0%':{transform:'scale(1)',opacity:'.7'}, '100%':{transform:'scale(1.6)',opacity:'0'} },
           }
         }
       }
@@ -71,152 +74,256 @@
   </script>
 
   <style>
-    body { background:#FBF3E3; }
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+    body { background:#0D0D10; color:#EDEAE5; }
     .grain {
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.04'/%3E%3C/svg%3E");
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.025'/%3E%3C/svg%3E");
     }
     .gradient-text {
-      background: linear-gradient(135deg, #B8733A, #F2C050);
+      background: linear-gradient(135deg, #FF5C1A 0%, #FBBF24 60%, #FF7A42 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
     }
     .card-glass {
-      background: rgba(255,252,242,.88);
-      border: 1px solid rgba(160,110,55,.18);
-      backdrop-filter: blur(12px);
+      background: rgba(20,20,28,.85);
+      border: 1px solid rgba(255,255,255,.07);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
     }
     .btn-primary {
-      background: linear-gradient(135deg,#B8733A,#D4924F);
-      box-shadow: 0 4px 20px rgba(184,115,58,.40);
-      transition: all .25s;
+      background: linear-gradient(135deg,#FF5C1A,#FF7A42);
+      box-shadow: 0 4px 24px rgba(255,92,26,.45);
+      transition: all .25s cubic-bezier(.16,1,.3,1);
+      color: white;
     }
     .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 28px rgba(184,115,58,.55);
+      transform: translateY(-2px) scale(1.02);
+      box-shadow: 0 8px 36px rgba(255,92,26,.6);
     }
     .ring-demo {
       animation: ring-spin 8s linear infinite;
     }
     @keyframes ring-spin {
-      0%   { stroke-dashoffset: 754; }
-      50%  { stroke-dashoffset: 188; }
-      100% { stroke-dashoffset: 754; }
+      0%   { stroke-dashoffset: 534; }
+      50%  { stroke-dashoffset: 133; }
+      100% { stroke-dashoffset: 534; }
     }
-    .fade-in { opacity:0; transform:translateY(24px); transition: opacity .7s ease, transform .7s ease; }
+    .fade-in { opacity:0; transform:translateY(28px); transition: opacity .8s cubic-bezier(.16,1,.3,1), transform .8s cubic-bezier(.16,1,.3,1); }
     .fade-in.visible { opacity:1; transform:translateY(0); }
-    .feature-card:hover { transform: translateY(-6px); box-shadow: 0 16px 48px rgba(100,60,10,.14); }
-    .feature-card { transition: all .3s ease; }
+    .feature-card {
+      transition: all .3s cubic-bezier(.16,1,.3,1);
+      background: rgba(20,20,28,.7);
+      border: 1px solid rgba(255,255,255,.06);
+      backdrop-filter: blur(12px);
+    }
+    .feature-card:hover {
+      transform: translateY(-8px);
+      border-color: rgba(255,92,26,.25);
+      box-shadow: 0 20px 60px rgba(0,0,0,.4), 0 0 0 1px rgba(255,92,26,.1);
+    }
+
+    /* ── HERO ORBIT VISUAL ── */
+    .hero-visual { position: relative; width: 340px; height: 340px; }
+    .hero-ring-outer {
+      position: absolute; inset: 0;
+      border-radius: 50%;
+      border: 1px solid rgba(255,92,26,.12);
+      animation: float 4s ease-in-out infinite;
+    }
+    .hero-ring-mid {
+      position: absolute; inset: 32px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,92,26,.08);
+      animation: float 5s ease-in-out infinite reverse;
+    }
+    .hero-card-main {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .hero-timer-demo {
+      width: 240px; height: 240px;
+      background: rgba(14,14,22,.95);
+      border: 1px solid rgba(255,255,255,.09);
+      border-radius: 50%;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      box-shadow: 0 0 0 1px rgba(255,92,26,.08), 0 24px 80px rgba(0,0,0,.7),
+                  inset 0 1px 0 rgba(255,255,255,.06);
+    }
+    .hero-timer-svg {
+      position: absolute; inset: 0;
+      transform: rotate(-90deg);
+    }
+    .hero-badge {
+      position: absolute;
+      background: rgba(20,20,28,.92);
+      border: 1px solid rgba(255,255,255,.08);
+      backdrop-filter: blur(16px);
+      border-radius: 14px;
+      padding: 10px 16px;
+      font-size: .82rem;
+      font-weight: 700;
+      color: #EDEAE5;
+      white-space: nowrap;
+      display: flex; align-items: center; gap: 8px;
+      box-shadow: 0 8px 32px rgba(0,0,0,.4);
+    }
+    .badge-dot { width: 7px; height: 7px; border-radius: 50%; }
+
+    /* ── STATS COUNTER ── */
+    .stat-counter {
+      font-size: 2.2rem;
+      font-weight: 900;
+      background: linear-gradient(135deg, #FF5C1A, #FBBF24);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
   </style>
 </head>
 <body class="grain overflow-x-hidden">
 
 <!-- ══ NAV ═══════════════════════════════════════════════════ -->
 <nav class="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 md:px-12 py-4"
-     style="background:rgba(251,243,227,.88);backdrop-filter:blur(20px);border-bottom:1px solid rgba(160,110,55,.15)">
-  <a href="/" class="flex items-center gap-2 text-caramel-500 font-extrabold text-xl tracking-tight no-underline">
+     style="background:rgba(13,13,16,.92);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,.06)">
+  <a href="/" class="flex items-center gap-2 font-extrabold text-xl tracking-tight no-underline"
+     style="color:#FF5C1A">
     <img src="/static/favicon.svg" class="w-7 h-7" alt="Focumo">
     Focumo
   </a>
-  <div class="hidden md:flex items-center gap-8 text-sm font-medium text-caramel-600">
-    <a href="#como-funciona" class="hover:text-caramel-500 transition-colors">Cómo funciona</a>
-    <a href="#caracteristicas" class="hover:text-caramel-500 transition-colors">Características</a>
-    <a href="#precios" class="hover:text-caramel-500 transition-colors">Precios</a>
+  <div class="hidden md:flex items-center gap-8 text-sm font-medium" style="color:#787878">
+    <a href="#como-funciona" style="transition:color .2s" onmouseover="this.style.color='#EDEAE5'" onmouseout="this.style.color='#787878'">Cómo funciona</a>
+    <a href="#caracteristicas" style="transition:color .2s" onmouseover="this.style.color='#EDEAE5'" onmouseout="this.style.color='#787878'">Características</a>
+    <a href="#precios" style="transition:color .2s" onmouseover="this.style.color='#EDEAE5'" onmouseout="this.style.color='#787878'">Precios</a>
   </div>
   <div class="flex items-center gap-3">
-    <a href="/login" class="text-sm font-semibold text-caramel-600 hover:text-caramel-500 transition-colors px-4 py-2">
+    <a href="/login" class="text-sm font-semibold px-4 py-2 no-underline" style="color:#787878">
       Entrar
     </a>
-    <a href="/register" class="btn-primary text-white text-sm font-bold px-5 py-2.5 rounded-full no-underline">
+    <a href="/register" class="btn-primary text-sm font-bold px-5 py-2.5 rounded-full no-underline">
       Empieza gratis →
     </a>
   </div>
 </nav>
 
 
-<!-- ══ HERO ══════════════════════════════════════════════════ -->
-<section class="min-h-screen flex flex-col items-center justify-center text-center px-6 pt-24 pb-16 relative">
-  <!-- Blob de fondo -->
-  <div class="absolute top-1/4 left-1/4 w-96 h-96 rounded-full opacity-20 blur-3xl -z-10"
-       style="background:radial-gradient(circle,#F2C050,transparent)"></div>
-  <div class="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full opacity-15 blur-3xl -z-10"
-       style="background:radial-gradient(circle,#B8733A,transparent)"></div>
+<!-- ══ HERO — Silicon Valley Standard ═══════════════════════ -->
+<section class="min-h-screen flex flex-col lg:flex-row items-center justify-center gap-16 px-6 md:px-16 pt-28 pb-20 relative overflow-hidden">
 
-  <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest mb-8 fade-in"
-       style="background:rgba(242,192,80,.2);color:#9A5A28;border:1px solid rgba(184,115,58,.25)">
-    🎯 Productividad gamificada · Focumo v1.0
+  <!-- Background glow orbs -->
+  <div class="absolute top-1/3 left-1/4 w-[500px] h-[500px] rounded-full -z-10 pointer-events-none"
+       style="background:radial-gradient(circle,rgba(255,92,26,.08) 0%,transparent 70%);filter:blur(60px)"></div>
+  <div class="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] rounded-full -z-10 pointer-events-none"
+       style="background:radial-gradient(circle,rgba(251,191,36,.05) 0%,transparent 70%);filter:blur(60px)"></div>
+
+  <!-- ── Texto izquierda ── -->
+  <div class="flex-1 max-w-2xl text-left">
+
+    <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest mb-8 fade-in"
+         style="background:rgba(255,92,26,.10);color:#FF7A42;border:1px solid rgba(255,92,26,.2)">
+      <span style="width:6px;height:6px;background:#FF5C1A;border-radius:50%;display:inline-block;animation:glow 2s ease-in-out infinite"></span>
+      Beta activa · Focumo v2.0
+    </div>
+
+    <h1 class="text-6xl md:text-8xl font-black tracking-tighter leading-none mb-6 fade-in" style="animation-delay:.08s;color:#EDEAE5">
+      Trabaja<br>
+      menos.<br>
+      <span class="gradient-text">Consigue</span><br>
+      <span class="gradient-text">más.</span>
+    </h1>
+
+    <p class="text-lg md:text-xl leading-relaxed mb-10 fade-in max-w-lg" style="animation-delay:.18s;color:#787878">
+      El método Pomodoro reinventado con psicología de videojuego. Ranking global, ligas semanales y medallas que importan.
+      <span style="color:#EDEAE5;font-weight:600"> Sin excusas.</span>
+    </p>
+
+    <div class="flex flex-col sm:flex-row items-start gap-4 mb-14 fade-in" style="animation-delay:.28s">
+      <a href="/register"
+         class="btn-primary font-bold text-base px-8 py-4 rounded-2xl no-underline">
+        Empezar gratis — 30 segundos
+      </a>
+      <a href="#como-funciona"
+         class="flex items-center gap-2 font-semibold text-sm no-underline transition-all"
+         style="color:#787878;padding:16px 0"
+         onmouseover="this.style.color='#EDEAE5'" onmouseout="this.style.color='#787878'">
+        Ver cómo funciona
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+      </a>
+    </div>
+
+    <!-- Social proof minimalista -->
+    <div class="flex items-center gap-8 fade-in" style="animation-delay:.38s">
+      <div>
+        <div class="stat-counter">100%</div>
+        <div class="text-xs font-medium" style="color:#484848">Gratis para empezar</div>
+      </div>
+      <div style="width:1px;height:40px;background:rgba(255,255,255,.08)"></div>
+      <div>
+        <div class="stat-counter">12+</div>
+        <div class="text-xs font-medium" style="color:#484848">Países compitiendo</div>
+      </div>
+      <div style="width:1px;height:40px;background:rgba(255,255,255,.08)"></div>
+      <div>
+        <div class="stat-counter">4,99€</div>
+        <div class="text-xs font-medium" style="color:#484848">PRO de por vida</div>
+      </div>
+    </div>
   </div>
 
-  <h1 class="text-5xl md:text-7xl font-black tracking-tighter text-caramel-900 leading-none mb-6 fade-in" style="animation-delay:.1s">
-    Tu foco,<br>
-    <span class="gradient-text">gamificado.</span>
-  </h1>
+  <!-- ── Visual derecha — Orbit Timer ── -->
+  <div class="fade-in flex-shrink-0" style="animation-delay:.45s">
+    <div class="hero-visual">
+      <!-- Anillos orbitales -->
+      <div class="hero-ring-outer"></div>
+      <div class="hero-ring-mid"></div>
 
-  <p class="text-lg md:text-xl text-caramel-600 max-w-2xl leading-relaxed mb-10 fade-in" style="animation-delay:.2s">
-    El método Pomodoro reinventado. Trabaja en bloques de 25 minutos,
-    sube en el ranking global, gana medallas y mide tu progreso real.
-    <strong class="text-caramel-500">Sin distracciones. Sin excusas.</strong>
-  </p>
-
-  <div class="flex flex-col sm:flex-row items-center gap-4 mb-16 fade-in" style="animation-delay:.3s">
-    <a href="/register"
-       class="btn-primary text-white font-bold text-base px-8 py-4 rounded-full no-underline">
-      Empieza gratis — es tuyo para siempre
-    </a>
-    <a href="#como-funciona"
-       class="text-caramel-500 font-semibold text-sm flex items-center gap-1 hover:gap-2 transition-all no-underline">
-      Ver cómo funciona ↓
-    </a>
-  </div>
-
-  <!-- Timer Demo Visual -->
-  <div class="relative animate-float fade-in" style="animation-delay:.4s">
-    <div class="card-glass rounded-3xl p-8 shadow-2xl w-72 md:w-80 mx-auto">
-      <div class="relative w-48 h-48 mx-auto mb-4">
-        <svg class="w-full h-full -rotate-90" viewBox="0 0 200 200">
-          <circle cx="100" cy="100" r="85" fill="none" stroke="rgba(160,110,55,.1)" stroke-width="10"/>
-          <circle cx="100" cy="100" r="85" fill="none" stroke="url(#grad)" stroke-width="10"
-                  stroke-linecap="round" stroke-dasharray="534" class="ring-demo"/>
-          <defs>
-            <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%"   stop-color="#B8733A"/>
-              <stop offset="100%" stop-color="#F2C050"/>
-            </linearGradient>
-          </defs>
-        </svg>
-        <div class="absolute inset-0 flex flex-col items-center justify-center">
-          <span class="text-4xl font-black text-caramel-900 tracking-tight">24:13</span>
-          <span class="text-xs font-bold uppercase tracking-widest text-caramel-400 mt-1">Trabaja</span>
+      <!-- Timer central -->
+      <div class="hero-card-main">
+        <div class="hero-timer-demo" style="position:relative">
+          <!-- SVG ring animado -->
+          <svg class="hero-timer-svg" viewBox="0 0 240 240">
+            <defs>
+              <linearGradient id="heroGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#FF5C1A"/>
+                <stop offset="100%" stop-color="#FBBF24"/>
+              </linearGradient>
+            </defs>
+            <circle cx="120" cy="120" r="105" fill="none" stroke="rgba(255,255,255,.04)" stroke-width="8"/>
+            <circle cx="120" cy="120" r="105" fill="none" stroke="url(#heroGrad)" stroke-width="8"
+                    stroke-linecap="round" stroke-dasharray="660" class="ring-demo"/>
+          </svg>
+          <div style="position:relative;z-index:1;text-align:center">
+            <div style="font-size:2.8rem;font-weight:900;color:#EDEAE5;letter-spacing:-.05em;line-height:1">24:13</div>
+            <div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#FF5C1A;margin-top:4px">Focus</div>
+          </div>
         </div>
       </div>
-      <div class="flex justify-center gap-3">
-        <div class="px-3 py-1.5 rounded-full text-xs font-semibold" style="background:rgba(184,115,58,.12);color:#B8733A">🍅 7 hoy</div>
-        <div class="px-3 py-1.5 rounded-full text-xs font-semibold" style="background:rgba(242,192,80,.15);color:#9A5A28">🔥 12 días</div>
-        <div class="px-3 py-1.5 rounded-full text-xs font-semibold" style="background:rgba(122,158,126,.12);color:#5A8A5E">🥇 #3</div>
-      </div>
-    </div>
-    <!-- Floating badges -->
-    <div class="absolute -top-4 -right-6 card-glass rounded-2xl px-4 py-2 text-sm font-bold text-caramel-700 shadow-lg hidden md:block"
-         style="animation:float 2.5s ease-in-out infinite">🏆 Ranking global</div>
-    <div class="absolute -bottom-2 -left-8 card-glass rounded-2xl px-4 py-2 text-sm font-bold text-caramel-700 shadow-lg hidden md:block"
-         style="animation:float 3.2s ease-in-out infinite .5s">📊 Stats en tiempo real</div>
-  </div>
 
-  <!-- Social proof -->
-  <div class="flex flex-wrap justify-center gap-8 mt-16 fade-in" style="animation-delay:.5s">
-    <div class="text-center">
-      <div class="text-2xl font-black text-caramel-500">100%</div>
-      <div class="text-xs text-caramel-400 font-medium">Gratis para empezar</div>
-    </div>
-    <div class="w-px bg-caramel-300/30 hidden md:block"></div>
-    <div class="text-center">
-      <div class="text-2xl font-black text-caramel-500">25min</div>
-      <div class="text-xs text-caramel-400 font-medium">Bloques de foco óptimos</div>
-    </div>
-    <div class="w-px bg-caramel-300/30 hidden md:block"></div>
-    <div class="text-center">
-      <div class="text-2xl font-black text-caramel-500">+40%</div>
-      <div class="text-xs text-caramel-400 font-medium">Productividad demostrada</div>
+      <!-- Badge flotante: ranking -->
+      <div class="hero-badge animate-float" style="top:-10px;right:-30px;animation-duration:3s">
+        <div class="badge-dot" style="background:#FBBF24"></div>
+        <div>
+          <div style="font-size:.7rem;color:#787878">Ranking global</div>
+          <div style="font-size:.88rem;color:#EDEAE5">#3 esta semana</div>
+        </div>
+      </div>
+
+      <!-- Badge flotante: racha -->
+      <div class="hero-badge animate-float" style="bottom:-10px;left:-36px;animation-duration:4s;animation-delay:.5s">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="#FF5C1A"><path d="M12 2C7.58 2 4 5.58 4 10c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38v-1.35c-2.23.48-2.7-1.07-2.7-1.07-.36-.93-.89-1.17-.89-1.17-.73-.5.06-.49.06-.49.8.06 1.23.83 1.23.83.71 1.22 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.65-.89-3.65-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.7 7.7 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48v2.19c0 .21.15.46.55.38A8.012 8.012 0 0 0 20 10c0-4.42-3.58-8-8-8z"/></svg>
+        <div>
+          <div style="font-size:.7rem;color:#787878">Racha activa</div>
+          <div style="font-size:.88rem;color:#EDEAE5">14 días</div>
+        </div>
+      </div>
+
+      <!-- Badge flotante: sesión -->
+      <div class="hero-badge animate-float" style="top:50%;right:-50px;transform:translateY(-50%);animation-duration:3.5s;animation-delay:.8s">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="#22C55E"><circle cx="12" cy="12" r="10"/></svg>
+        <div style="font-size:.82rem;color:#EDEAE5">7 sesiones hoy</div>
+      </div>
+
     </div>
   </div>
 </section>
@@ -240,15 +347,15 @@
 
 
 <!-- ══ CÓMO FUNCIONA ═════════════════════════════════════════ -->
-<section id="como-funciona" class="py-24 px-6" style="background:rgba(240,226,200,.35)">
+<section id="como-funciona" class="py-24 px-6" style="background:rgba(13,13,16,.7)">
   <div class="max-w-5xl mx-auto">
     <div class="text-center mb-16 fade-in">
       <div class="inline-block text-xs font-bold uppercase tracking-widest text-caramel-400 mb-3"
-           style="background:rgba(184,115,58,.12);padding:6px 14px;border-radius:99px">
+           style="background:rgba(255,92,26,.10);padding:6px 14px;border-radius:99px">
         La ciencia detrás de Focumo
       </div>
       <h2 class="text-4xl md:text-5xl font-black text-caramel-900 mb-4">El Método Pomodoro,<br>explicado en 3 pasos</h2>
-      <p class="text-caramel-600 max-w-xl mx-auto leading-relaxed">
+      <p class="text-night-400 max-w-xl mx-auto leading-relaxed">
         Desarrollado por Francesco Cirillo en los años 80 y validado por
         décadas de neurociencia del comportamiento.
       </p>
@@ -259,7 +366,7 @@
         <div class="text-5xl mb-4">🎯</div>
         <div class="text-xs font-bold uppercase tracking-widest text-caramel-400 mb-2">Paso 1</div>
         <h3 class="text-xl font-black text-caramel-900 mb-3">Elige una tarea</h3>
-        <p class="text-caramel-600 text-sm leading-relaxed">
+        <p class="text-night-400 text-sm leading-relaxed">
           Selecciona en qué vas a trabajar. Nada de multitasking.
           Un solo objetivo por sesión activa el modo "deep work" de tu cerebro.
         </p>
@@ -268,7 +375,7 @@
         <div class="text-5xl mb-4">⏱️</div>
         <div class="text-xs font-bold uppercase tracking-widest text-caramel-400 mb-2">Paso 2</div>
         <h3 class="text-xl font-black text-caramel-900 mb-3">Trabaja 25 minutos</h3>
-        <p class="text-caramel-600 text-sm leading-relaxed">
+        <p class="text-night-400 text-sm leading-relaxed">
           El límite artificial de tiempo elimina la parálisis por análisis
           y activa el efecto "deadline" natural que dispara la concentración.
         </p>
@@ -277,7 +384,7 @@
         <div class="text-5xl mb-4">🏆</div>
         <div class="text-xs font-bold uppercase tracking-widest text-caramel-400 mb-2">Paso 3</div>
         <h3 class="text-xl font-black text-caramel-900 mb-3">Descansa y sube de nivel</h3>
-        <p class="text-caramel-600 text-sm leading-relaxed">
+        <p class="text-night-400 text-sm leading-relaxed">
           5 minutos de descanso restauran la atención. Cada sesión acumula
           puntos, escala posiciones y desbloquea medallas mensuales.
         </p>
@@ -285,12 +392,12 @@
     </div>
 
     <div class="card-glass rounded-3xl p-8 mt-10 fade-in"
-         style="border-left:4px solid #F2C050">
+         style="border-left:4px solid #FF5C1A">
       <div class="flex flex-col md:flex-row items-start md:items-center gap-4">
         <div class="text-3xl">🧠</div>
         <div>
           <h4 class="font-black text-caramel-900 mb-1">La neurociencia lo confirma</h4>
-          <p class="text-caramel-600 text-sm leading-relaxed">
+          <p class="text-night-400 text-sm leading-relaxed">
             El trabajo en bloques temporales reduce la fatiga cognitiva hasta un <strong>40%</strong>
             según estudios de la Universidad de Illinois (2011). Tu cerebro está diseñado
             para alternar entre foco intenso y recuperación, no para maratones de 8 horas.
@@ -318,7 +425,7 @@
       <div class="card-glass rounded-3xl p-8 fade-in feature-card">
         <div class="text-4xl mb-4">🏆</div>
         <h3 class="text-xl font-black text-caramel-900 mb-2">Ranking global en tiempo real</h3>
-        <p class="text-caramel-600 text-sm leading-relaxed">
+        <p class="text-night-400 text-sm leading-relaxed">
           Compite con usuarios de todo el mundo. El ranking mensual con
           puntuación en vivo convierte cada Pomodoro en una decisión estratégica.
           La gamificación activa el sistema de recompensa dopaminérgico.
@@ -328,7 +435,7 @@
       <div class="card-glass rounded-3xl p-8 fade-in feature-card" style="animation-delay:.1s">
         <div class="text-4xl mb-4">🥇</div>
         <h3 class="text-xl font-black text-caramel-900 mb-2">Medallas mensuales permanentes</h3>
-        <p class="text-caramel-600 text-sm leading-relaxed">
+        <p class="text-night-400 text-sm leading-relaxed">
           Los 3 mejores del mes reciben medallas de Oro, Plata y Bronce
           que se muestran permanentemente en su perfil. Un trofeo digital
           que nadie te puede quitar.
@@ -338,7 +445,7 @@
       <div class="card-glass rounded-3xl p-8 fade-in feature-card" style="animation-delay:.2s">
         <div class="text-4xl mb-4">📊</div>
         <h3 class="text-xl font-black text-caramel-900 mb-2">Estadísticas que importan</h3>
-        <p class="text-caramel-600 text-sm leading-relaxed">
+        <p class="text-night-400 text-sm leading-relaxed">
           Mapa de calor anual estilo GitHub, gráficas por categoría y racha
           de días. Visualiza exactamente en qué inviertes tu tiempo y
           descubre tus picos de productividad.
@@ -348,7 +455,7 @@
       <div class="card-glass rounded-3xl p-8 fade-in feature-card" style="animation-delay:.3s">
         <div class="text-4xl mb-4">🔥</div>
         <h3 class="text-xl font-black text-caramel-900 mb-2">Rachas que no quieres romper</h3>
-        <p class="text-caramel-600 text-sm leading-relaxed">
+        <p class="text-night-400 text-sm leading-relaxed">
           El contador de días consecutivos activa el efecto "don't break the chain"
           de Jerry Seinfeld. Una vez que llevas 7 días, romperla
           duele más que seguir.
@@ -358,7 +465,7 @@
       <div class="card-glass rounded-3xl p-8 fade-in feature-card" style="animation-delay:.4s">
         <div class="text-4xl mb-4">🎨</div>
         <h3 class="text-xl font-black text-caramel-900 mb-2">Categorías personalizadas</h3>
-        <p class="text-caramel-600 text-sm leading-relaxed">
+        <p class="text-night-400 text-sm leading-relaxed">
           Crea categorías con tu color y emoji. Mide cuánto tiempo dedicas
           a proyectos, clientes o áreas de vida. Los datos no mienten.
         </p>
@@ -367,7 +474,7 @@
       <div class="card-glass rounded-3xl p-8 fade-in feature-card" style="animation-delay:.5s">
         <div class="text-4xl mb-4">🔔</div>
         <h3 class="text-xl font-black text-caramel-900 mb-2">Notificaciones nativas</h3>
-        <p class="text-caramel-600 text-sm leading-relaxed">
+        <p class="text-night-400 text-sm leading-relaxed">
           Alertas del sistema cuando acaba cada sesión. El contador se muestra
           en la pestaña del navegador para que siempre sepas cuánto queda,
           incluso con la app minimizada.
@@ -379,14 +486,14 @@
 
 
 <!-- ══ PRECIOS ════════════════════════════════════════════════ -->
-<section id="precios" class="py-24 px-6" style="background:rgba(240,226,200,.35)">
+<section id="precios" class="py-24 px-6" style="background:rgba(13,13,16,.7)">
   <div class="max-w-4xl mx-auto">
     <div class="text-center mb-16 fade-in">
       <h2 class="text-4xl md:text-5xl font-black text-caramel-900 mb-4">
         Empieza gratis.<br>
         <span class="gradient-text">Crece sin límites.</span>
       </h2>
-      <p class="text-caramel-600 max-w-lg mx-auto">
+      <p class="text-night-400 max-w-lg mx-auto">
         Sin tarjeta de crédito. Sin trucos. Focumo Free incluye todo
         lo que necesitas para ser más productivo hoy mismo.
       </p>
@@ -398,7 +505,7 @@
         <div class="text-xs font-bold uppercase tracking-widest text-caramel-400 mb-4">Free — Para siempre</div>
         <div class="flex items-baseline gap-2 mb-6">
           <span class="text-5xl font-black text-caramel-900">0€</span>
-          <span class="text-caramel-400">/mes</span>
+          <span class="text-night-400">/mes</span>
         </div>
         <ul class="space-y-3 mb-8">
           <li class="flex items-center gap-3 text-sm text-caramel-700"><span class="text-green-500 font-bold">✓</span> Timer Pomodoro completo</li>
@@ -416,21 +523,21 @@
 
       <!-- PRO -->
       <div class="rounded-3xl p-10 fade-in relative overflow-hidden"
-           style="background:linear-gradient(135deg,#B8733A,#7A4018);animation-delay:.2s">
+           style="background:linear-gradient(135deg,#1A0800,#0D0D10);border:1px solid rgba(255,92,26,.2);animation-delay:.2s">
         <div class="absolute top-0 right-0 w-40 h-40 rounded-full opacity-20"
-             style="background:radial-gradient(circle,#F2C050,transparent);transform:translate(30%,-30%)"></div>
+             style="background:radial-gradient(circle,#FF5C1A,transparent);transform:translate(30%,-30%)"></div>
         <div class="text-xs font-bold uppercase tracking-widest text-caramel-300 mb-4">PRO — Próximamente</div>
         <div class="flex items-baseline gap-2 mb-6">
           <span class="text-5xl font-black text-white">4.99€</span>
-          <span class="text-caramel-300">/mes</span>
+          <span class="text-flame-300">/mes</span>
         </div>
         <ul class="space-y-3 mb-8">
-          <li class="flex items-center gap-3 text-sm text-caramel-100"><span class="text-caramel-300 font-bold">★</span> Todo lo del plan Free</li>
-          <li class="flex items-center gap-3 text-sm text-caramel-100"><span class="text-caramel-300 font-bold">★</span> Editor de temas de color</li>
-          <li class="flex items-center gap-3 text-sm text-caramel-100"><span class="text-caramel-300 font-bold">★</span> Sonidos exclusivos y relajantes</li>
-          <li class="flex items-center gap-3 text-sm text-caramel-100"><span class="text-caramel-300 font-bold">★</span> Exportación de estadísticas (PDF/CSV)</li>
-          <li class="flex items-center gap-3 text-sm text-caramel-100"><span class="text-caramel-300 font-bold">★</span> Sin anuncios, nunca</li>
-          <li class="flex items-center gap-3 text-sm text-caramel-100"><span class="text-caramel-300 font-bold">★</span> Soporte prioritario</li>
+          <li class="flex items-center gap-3 text-sm text-caramel-100"><span class="text-flame-300 font-bold">★</span> Todo lo del plan Free</li>
+          <li class="flex items-center gap-3 text-sm text-caramel-100"><span class="text-flame-300 font-bold">★</span> Editor de temas de color</li>
+          <li class="flex items-center gap-3 text-sm text-caramel-100"><span class="text-flame-300 font-bold">★</span> Sonidos exclusivos y relajantes</li>
+          <li class="flex items-center gap-3 text-sm text-caramel-100"><span class="text-flame-300 font-bold">★</span> Exportación de estadísticas (PDF/CSV)</li>
+          <li class="flex items-center gap-3 text-sm text-caramel-100"><span class="text-flame-300 font-bold">★</span> Sin anuncios, nunca</li>
+          <li class="flex items-center gap-3 text-sm text-caramel-100"><span class="text-flame-300 font-bold">★</span> Soporte prioritario</li>
         </ul>
         <button class="w-full bg-white/20 text-white font-bold py-3.5 rounded-2xl border border-white/30 cursor-not-allowed opacity-75 text-sm">
           🔔 Avísame cuando esté disponible
@@ -454,7 +561,7 @@
       Un Pomodoro hoy.<br>
       <span class="gradient-text">Una vida diferente en un año.</span>
     </h2>
-    <p class="text-caramel-600 text-lg mb-10 leading-relaxed">
+    <p class="text-night-400 text-lg mb-10 leading-relaxed">
       Cada sesión cuenta. Cada día de racha importa.
       Los mejores resultados de tu vida están a 25 minutos de distancia.
     </p>
@@ -462,13 +569,13 @@
        class="btn-primary text-white font-black text-lg px-10 py-5 rounded-full no-underline inline-block">
       Crear cuenta gratis — en 30 segundos
     </a>
-    <p class="text-caramel-400 text-xs mt-4">Sin tarjeta de crédito · Sin compromiso · 100% tuyo</p>
+    <p class="text-night-400 text-xs mt-4">Sin tarjeta de crédito · Sin compromiso · 100% tuyo</p>
   </div>
 </section>
 
 
 <!-- ══ FOOTER ═════════════════════════════════════════════════ -->
-<footer style="background:rgba(58,32,0,.04);border-top:1px solid rgba(160,110,55,.15)">
+<footer style="background:rgba(10,10,14,1);border-top:1px solid rgba(255,255,255,.06)">
   <div class="max-w-5xl mx-auto px-6 py-12">
     <div class="grid md:grid-cols-4 gap-8 mb-10">
       <!-- Brand -->
@@ -483,7 +590,7 @@
         </p>
         <a href="https://ko-fi.com/focumo" target="_blank"
            class="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold no-underline transition-all"
-           style="background:rgba(184,115,58,.12);color:#B8733A;border:1px solid rgba(184,115,58,.25)">
+           style="background:rgba(255,92,26,.10);color:#B8733A;border:1px solid rgba(184,115,58,.25)">
           ☕ Invítame a un café
         </a>
       </div>
@@ -512,7 +619,7 @@
         © 2026 Santiago Jiménez Téllez & Foco Studio. Todos los derechos reservados.
       </p>
       <p class="text-xs text-caramel-400">
-        Hecho con 🍅 y mucho Pomodoro · <a href="https://focumo.app" class="text-caramel-500 no-underline hover:underline">focumo.app</a>
+        Hecho con 🍅 y mucho Pomodoro · <a href="https://focumo.app" class="text-flame-500 no-underline hover:underline">focumo.app</a>
       </p>
     </div>
   </div>

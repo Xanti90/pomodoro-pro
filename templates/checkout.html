@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Focumo PRO — Checkout</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="stylesheet" href="/static/style.css">
+  <style>
+    .checkout-body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 20px;
+      background: var(--bg);
+      background-image:
+        radial-gradient(ellipse at 20% 20%, rgba(255,92,26,.09) 0%, transparent 55%),
+        radial-gradient(ellipse at 80% 80%, rgba(251,191,36,.05) 0%, transparent 55%);
+    }
+
+    .checkout-wrap {
+      width: 100%;
+      max-width: 820px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: 0 16px 64px rgba(0,0,0,.7);
+      border: 1px solid rgba(255,255,255,.07);
+    }
+
+    @media (max-width: 640px) {
+      .checkout-wrap { grid-template-columns: 1fr; }
+      .checkout-summary { display: none; }
+    }
+
+    /* ── Resumen izquierda ── */
+    .checkout-summary {
+      background: linear-gradient(160deg, #1A0F00 0%, #0D0D10 100%);
+      padding: 48px 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+      border-right: 1px solid rgba(255,255,255,.06);
+    }
+
+    .checkout-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 800;
+      font-size: 1.1rem;
+      color: var(--primary);
+    }
+
+    .checkout-price-block {
+      border-top: 1px solid rgba(255,255,255,.08);
+      padding-top: 24px;
+    }
+    .checkout-price-label {
+      font-size: .75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .checkout-price {
+      font-size: 3.5rem;
+      font-weight: 900;
+      color: var(--text);
+      letter-spacing: -.03em;
+      line-height: 1;
+    }
+    .checkout-price span {
+      font-size: 1.3rem;
+      color: var(--muted);
+      font-weight: 400;
+    }
+    .checkout-desc {
+      font-size: .82rem;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    .checkout-perks {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .checkout-perks li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: .87rem;
+      color: var(--text);
+    }
+    .perk-icon {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: rgba(255,92,26,.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .checkout-guarantee {
+      font-size: .75rem;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 12px 14px;
+      border: 1px solid rgba(255,255,255,.07);
+      border-radius: 10px;
+    }
+
+    /* ── Formulario derecha ── */
+    .checkout-form-panel {
+      background: var(--bg2);
+      padding: 48px 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .checkout-form-title {
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: var(--text);
+    }
+    .checkout-form-sub {
+      font-size: .82rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .pay-methods {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .pay-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      padding: 14px;
+      border-radius: 14px;
+      font-size: .95rem;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      text-decoration: none;
+      transition: all .2s;
+    }
+    .pay-btn-stripe {
+      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      color: #fff;
+      box-shadow: 0 4px 20px var(--primary-glow);
+    }
+    .pay-btn-stripe:hover { transform: translateY(-1px); box-shadow: 0 6px 28px var(--primary-glow); }
+
+    .pay-btn-google {
+      background: #fff;
+      color: #1a1a1a;
+      box-shadow: 0 2px 8px rgba(0,0,0,.2);
+    }
+    .pay-btn-google:hover { background: #f5f5f5; }
+
+    .pay-btn-paypal {
+      background: rgba(255,196,57,.10);
+      color: #F5BE00;
+      border: 1.5px solid rgba(255,196,57,.3);
+    }
+    .pay-btn-paypal:hover { background: rgba(255,196,57,.18); }
+
+    .pay-btn-apple {
+      background: rgba(255,255,255,.04);
+      color: var(--muted);
+      border: 1.5px solid rgba(255,255,255,.08);
+      opacity: .45;
+      cursor: not-allowed;
+      pointer-events: none;
+      position: relative;
+    }
+
+    .pay-divider {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: .78rem;
+      color: var(--muted);
+    }
+    .pay-divider::before,
+    .pay-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .badge-soon {
+      position: absolute;
+      top: -8px; right: 10px;
+      background: #6B21A8;
+      color: #fff;
+      font-size: .58rem;
+      font-weight: 800;
+      padding: 2px 8px;
+      border-radius: 99px;
+      letter-spacing: .05em;
+    }
+
+    .checkout-security {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: .75rem;
+      color: var(--muted);
+      padding-top: 8px;
+      border-top: 1px solid var(--border);
+    }
+
+    .processing-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(13,13,16,.92);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 20px;
+      z-index: 999;
+    }
+    .processing-overlay.active { display: flex; }
+    .processing-spinner {
+      width: 52px; height: 52px;
+      border: 4px solid rgba(255,92,26,.2);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .processing-text {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .processing-sub {
+      font-size: .82rem;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body class="checkout-body">
+
+  <div class="checkout-wrap">
+
+    <!-- ── RESUMEN (izquierda) ── -->
+    <div class="checkout-summary">
+      <div class="checkout-brand">
+        <img src="/static/favicon.svg" width="28" height="28" alt="Focumo">
+        Focumo PRO
+      </div>
+
+      <div class="checkout-price-block">
+        <div class="checkout-price-label">Pago único</div>
+        <div class="checkout-price">4,99<span>€</span></div>
+        <div class="checkout-desc">Acceso de por vida · Sin renovaciones · Sin sorpresas</div>
+      </div>
+
+      <ul class="checkout-perks">
+        <li>
+          <div class="perk-icon">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+          </div>
+          Ligas Oro y Diamante desbloqueadas
+        </li>
+        <li>
+          <div class="perk-icon">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+          </div>
+          Corona dorada en perfil y ranking
+        </li>
+        <li>
+          <div class="perk-icon">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+          </div>
+          Streak Shield — protege tu racha
+        </li>
+        <li>
+          <div class="perk-icon">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+          </div>
+          Estadísticas avanzadas e historial ilimitado
+        </li>
+        <li>
+          <div class="perk-icon">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+          </div>
+          Salas de estudio privadas
+        </li>
+      </ul>
+
+      <div class="checkout-guarantee">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Garantía de satisfacción 7 días. Sin preguntas.
+      </div>
+    </div>
+
+    <!-- ── MÉTODOS DE PAGO (derecha) ── -->
+    <div class="checkout-form-panel">
+      <div>
+        <div class="checkout-form-title">Elige tu método de pago</div>
+        <div class="checkout-form-sub">Procesado de forma segura. Nunca guardamos tus datos bancarios.</div>
+      </div>
+
+      <div class="pay-methods">
+
+        <!-- Stripe (tarjeta / Google Pay nativo) -->
+        {% if stripe_link %}
+        <a href="{{ stripe_link }}" class="pay-btn pay-btn-stripe">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/></svg>
+          Pagar con Stripe · 4,99€
+        </a>
+        {% else %}
+        <button onclick="mockPay('stripe')" class="pay-btn pay-btn-stripe">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/></svg>
+          Pagar con tarjeta · 4,99€
+        </button>
+        {% endif %}
+
+        <!-- Google Pay -->
+        <button onclick="mockPay('google')" class="pay-btn pay-btn-google">
+          <svg width="20" height="20" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+          Google Pay
+        </button>
+
+        <div class="pay-divider">o</div>
+
+        <!-- PayPal -->
+        <button onclick="mockPay('paypal')" class="pay-btn pay-btn-paypal">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="#F5BE00"><path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.288 2.652.876 4.402l-.003.016-.43 2.748c-.858 5.461-4.287 7.346-8.57 7.346H9.37a.774.774 0 0 0-.763.648l-1.056 6.696-.013.085a.064.064 0 0 1-.063.061h-.399z"/></svg>
+          Pagar con PayPal
+        </button>
+
+        <!-- Apple Pay -->
+        <div style="position:relative">
+          <button class="pay-btn pay-btn-apple" disabled>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+            Apple Pay — Próximamente para app iOS
+          </button>
+          <span class="badge-soon">PRÓX. iOS</span>
+        </div>
+
+      </div>
+
+      <div class="checkout-security">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        Pago cifrado SSL · Stripe Certified · PCI DSS compliant
+      </div>
+
+      <a href="/app" style="font-size:.8rem;color:var(--muted);text-decoration:none;text-align:center">
+        ← Volver a la app
+      </a>
+    </div>
+  </div>
+
+  <!-- Overlay de procesamiento -->
+  <div class="processing-overlay" id="proc-overlay">
+    <div class="processing-spinner"></div>
+    <div class="processing-text">Procesando tu pago…</div>
+    <div class="processing-sub">Esto solo tardará un momento</div>
+  </div>
+
+  <script>
+    function mockPay(method) {
+      document.getElementById('proc-overlay').classList.add('active');
+      // Simula 2.5s de procesamiento → activa PRO
+      setTimeout(() => {
+        window.location.href = '/checkout/mock-success';
+      }, 2500);
+    }
+  </script>
+
+</body>
+</html>

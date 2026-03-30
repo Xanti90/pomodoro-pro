@@ -575,11 +575,43 @@
         Salas de estudio privadas
       </li>
     </ul>
-    <button onclick="cerrarModalPro()" style="width:100%;background:var(--primary);color:#fff;border:none;border-radius:14px;padding:14px;font-size:1rem;font-weight:800;cursor:pointer;letter-spacing:.01em">
-      Hacerme PRO — 4,99€
-    </button>
-    <p style="text-align:center;font-size:.72rem;color:var(--muted);margin-top:10px">
-      Pago único. Sin suscripción. Sin sorpresas.
+    <!-- Stripe / Google Pay — botón principal -->
+    <a href="/checkout"
+       style="display:flex;align-items:center;justify-content:center;gap:10px;
+              width:100%;background:linear-gradient(135deg,var(--primary),var(--primary-light));
+              color:#fff;border:none;border-radius:14px;padding:14px;font-size:1rem;font-weight:800;
+              cursor:pointer;letter-spacing:.01em;text-decoration:none;margin-bottom:10px;
+              box-shadow:0 4px 20px var(--primary-glow)">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/></svg>
+      Desbloquear PRO — 4,99€
+    </a>
+
+    <!-- PayPal secundario -->
+    <a href="/checkout?method=paypal"
+       style="display:flex;align-items:center;justify-content:center;gap:10px;
+              width:100%;background:rgba(255,196,57,.12);
+              color:#F5BE00;border:1.5px solid rgba(255,196,57,.35);border-radius:14px;
+              padding:11px;font-size:.88rem;font-weight:700;cursor:pointer;
+              text-decoration:none;margin-bottom:8px">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="#F5BE00"><path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.288 2.652.876 4.402l-.003.016v.016l-.43 2.748c-.858 5.461-4.287 7.346-8.57 7.346H9.37a.774.774 0 0 0-.763.648l-.005.03-1.056 6.696-.013.085-.004.028a.064.064 0 0 1-.063.061h-.39l.0-.0z"/></svg>
+      Pagar con PayPal
+    </a>
+
+    <!-- Apple Pay — disabled -->
+    <div style="position:relative;opacity:.45;pointer-events:none;user-select:none;margin-bottom:10px">
+      <div style="display:flex;align-items:center;justify-content:center;gap:10px;
+                  border:1.5px solid rgba(255,255,255,.12);border-radius:14px;padding:11px;
+                  background:rgba(255,255,255,.04);font-size:.88rem;font-weight:600;color:var(--text)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+        Apple Pay
+      </div>
+      <span style="position:absolute;top:-8px;right:10px;background:#6B21A8;color:#fff;
+                   font-size:.58rem;font-weight:800;padding:2px 8px;border-radius:99px;
+                   letter-spacing:.05em">PRÓX. iOS</span>
+    </div>
+
+    <p style="text-align:center;font-size:.72rem;color:var(--muted)">
+      Pago único · Sin suscripción · Acceso de por vida
     </p>
   </div>
 </div>

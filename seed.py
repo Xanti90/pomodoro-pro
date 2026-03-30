@@ -212,7 +212,8 @@ def main():
 
     for i, (locale, cc) in enumerate(pool):
         liga   = random.choice(LIGAS)
-        plan   = "pro" if liga in ("oro", "diamante") else "free"
+        # 15% de bots son PRO independientemente de liga
+        plan   = "pro" if (liga in ("oro", "diamante") or random.random() < 0.15) else "free"
         perfil = (
             "intensivo" if liga == "diamante" else
             "regular"   if liga in ("oro", "plata") else
