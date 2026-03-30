@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Focumo PRO — Checkout</title>
   <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <script>(function(){if(localStorage.getItem('focumo-theme')==='light')document.documentElement.setAttribute('data-theme','light')})()</script>
   <link rel="stylesheet" href="/static/style.css">
   {% if stripe_public_key %}
   <script src="https://js.stripe.com/v3/"></script>
@@ -379,30 +380,41 @@
   </div>
 
   <script>
-    const STRIPE_PUBLIC_KEY = "{{ stripe_public_key }}";
+    const STRIPE_CONFIGURED = {{ 'true' if stripe_configured else 'false' }};
+    const BTN_ORIGINAL_HTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/></svg> Pagar con tarjeta · 4,99€';
 
-    // ── Stripe Checkout Session ──────────────────────────────
+    // ── Stripe Checkout Session (real o mock visual) ─────────
     async function pagarConStripe() {
       const btn = document.getElementById('btn-stripe-checkout');
+
+      // Sin claves reales → usar mock visual (overlay 2.5s → mock-success)
+      if (!STRIPE_CONFIGURED) {
+        pagarMock('stripe');
+        return;
+      }
+
       btn.disabled = true;
-      btn.textContent = 'Redirigiendo…';
+      btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" style="display:inline-block;vertical-align:middle;animation:spin .7s linear infinite;margin-right:6px"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>Conectando con Stripe…';
+
       try {
         const r = await fetch('/create-checkout-session', { method: 'POST' });
         const d = await r.json();
+        if (d.error) throw new Error(d.error);
         if (d.url) {
           document.getElementById('proc-overlay').classList.add('active');
           window.location.href = d.url;
-        } else {
-          btn.disabled = false;
-          btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/></svg> Pagar con tarjeta · 4,99€';
+          return;
         }
+        throw new Error('Sin URL de pago');
       } catch(e) {
         console.error('[stripe]', e);
-        pagarMock('stripe');
+        btn.disabled = false;
+        btn.innerHTML = BTN_ORIGINAL_HTML;
+        alert('Error al conectar con Stripe: ' + e.message + '. Inténtalo de nuevo.');
       }
     }
 
-    // ── Mock fallback (dev sin claves) ────────────────────────
+    // ── Mock visual (dev sin claves) ─────────────────────────
     function pagarMock(method) {
       document.getElementById('proc-overlay').classList.add('active');
       setTimeout(() => { window.location.href = '/checkout/mock-success'; }, 2500);

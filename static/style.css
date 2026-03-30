@@ -3,6 +3,8 @@
    © 2026 Santiago Jiménez Téllez & Foco Studio
    ════════════════════════════════════════════ */
 
+@keyframes spin { to { transform: rotate(360deg); } }
+
 :root {
   --bg:            #0D0D10;
   --bg2:           #13131A;

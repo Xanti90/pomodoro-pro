@@ -58,6 +58,20 @@ PAYPAL_MODE           = os.environ.get("PAYPAL_MODE",           "sandbox")  # "s
 # ─── DONACIONES ────────────────────────────────────────────────
 COFFEE_URL = os.environ.get("COFFEE_URL", "https://ko-fi.com/focumo")
 
+# ─── OPENAI (Chatbot IA) ──────────────────────────────────────
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
+OPENAI_MODEL   = os.environ.get("OPENAI_MODEL",   "gpt-4o-mini")
+
+_FOCUMO_SYSTEM_PROMPT = (
+    "Eres Focumo AI, el asistente experto en productividad de la app Focumo. "
+    "Tu tono es profesional, motivador y directo (estilo startup). "
+    "Respondes dudas sobre el método Pomodoro, explicas el sistema de Ligas "
+    "(Bronce → Plata → Oro → Diamante) y, cuando sea oportuno, animas "
+    "sutilmente al usuario a comprar la versión PRO (pago único de 4,99€) "
+    "para desbloquear las Ligas Oro/Diamante y las estadísticas avanzadas. "
+    "Sé breve: respuestas de 2-4 frases máximo. Nunca inventes datos."
+)
+
 GOOGLE_AUTH_URL     = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URL    = "https://oauth2.googleapis.com/token"
 GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo"
@@ -837,45 +851,79 @@ def notify():
     return jsonify({"ok":True})
 
 # ── AI Chat Widget ────────────────────────────────────────────
+
+def _chat_fallback(msg_lower: str) -> str:
+    """Respuestas locales cuando OPENAI_API_KEY no está configurado."""
+    if any(w in msg_lower for w in ["bug","error","fallo","problema","no funciona"]):
+        return ("Gracias por reportar. Describe los pasos exactos para reproducirlo "
+                "y te ayudamos. También puedes usar el botón de bug en el menú.")
+    if any(w in msg_lower for w in ["pro","premium","precio","plan","ligas"]):
+        return ("Focumo PRO desbloquea las Ligas Oro y Diamante, coronita en el ranking "
+                "y estadísticas avanzadas. Pago único de 4,99€, para siempre.")
+    if any(w in msg_lower for w in ["pomodoro","método","técnica","funciona"]):
+        return ("El método Pomodoro divide tu trabajo en bloques de 25 min con "
+                "descansos de 5 min. Reduce la procrastinación y mejora el foco sostenido.")
+    if any(w in msg_lower for w in ["hola","buenas","hey","hi","hello"]):
+        return "¡Hola! Soy Focumo AI, tu asistente de productividad. ¿En qué puedo ayudarte?"
+    return ("Buena pregunta. Para soporte detallado escríbenos a hello@focumo.app. "
+            "¿Puedo ayudarte con algo más sobre productividad o el método Pomodoro?")
+
+
+def _chat_openai(uid: int, message: str, db) -> str:
+    """Llama a la API de OpenAI con historial de conversación."""
+    import openai
+    client = openai.OpenAI(api_key=OPENAI_API_KEY)
+
+    # Últimos 8 mensajes para contexto
+    history = db.execute(
+        "SELECT role, message FROM chat_messages "
+        "WHERE user_id=? ORDER BY created_at DESC LIMIT 8",
+        (uid,)
+    ).fetchall()
+
+    messages = [{"role": "system", "content": _FOCUMO_SYSTEM_PROMPT}]
+    for row in reversed(list(history)):
+        role = "assistant" if row["role"] == "assistant" else "user"
+        messages.append({"role": role, "content": row["message"]})
+    # Añadir mensaje actual (puede no estar aún en el historial)
+    if not history or history[0]["message"] != message:
+        messages.append({"role": "user", "content": message})
+
+    completion = client.chat.completions.create(
+        model=OPENAI_MODEL,
+        messages=messages,
+        max_tokens=250,
+        temperature=0.7,
+    )
+    return completion.choices[0].message.content.strip()
+
+
 @app.route("/api/chat", methods=["POST"])
 @login_required
 def chat():
     """
-    Endpoint del asistente IA. Por ahora responde con mensajes
-    predefinidos. Listo para conectar a OpenAI/Claude API.
+    Asistente IA de Focumo.
+    Si OPENAI_API_KEY está configurada → OpenAI.
+    Si no → respuestas locales inteligentes.
     """
     data    = request.get_json() or {}
-    message = str(data.get("message","")).strip()[:500]
+    message = str(data.get("message", "")).strip()[:500]
     uid     = session["user_id"]
-    if not message: return jsonify({"error":"Mensaje vacío"}), 400
+    if not message:
+        return jsonify({"error": "Mensaje vacío"}), 400
 
-    # Guardar mensaje del usuario
     db = get_db()
     db.execute("INSERT INTO chat_messages (user_id,role,message) VALUES(?,?,?)",
                (uid, "user", message))
 
-    # Respuesta placeholder (conectar API IA aquí)
-    msg_lower = message.lower()
-    if any(w in msg_lower for w in ["bug","error","fallo","problema","no funciona"]):
-        response = ("Gracias por reportar el problema. Por favor, describe los pasos "
-                    "exactos para reproducirlo y te ayudamos lo antes posible. "
-                    "También puedes usar el botón 🐛 en el menú de usuario.")
-    elif any(w in msg_lower for w in ["pro","premium","precio","plan"]):
-        response = ("Focumo PRO incluye temas de color personalizados, sonidos exclusivos, "
-                    "exportación avanzada de stats y 0 anuncios. ¡Próximamente! "
-                    "También puedes conseguirlo gratis invitando a 1 amigo.")
-    elif any(w in msg_lower for w in ["libro","kdp","productividad","recurso"]):
-        response = ("Nuestros libros sobre productividad y el método Pomodoro están disponibles "
-                    "en Amazon KDP. ¡Busca 'Focumo Productividad' próximamente!")
-    elif any(w in msg_lower for w in ["pomodoro","método","técnica","funciona"]):
-        response = ("El método Pomodoro divide tu trabajo en bloques de 25 minutos "
-                    "con descansos cortos. Estudios demuestran que mejora el foco un 40% "
-                    "y reduce la procrastinación. ¡Tú ya lo estás usando! 🍅")
-    elif any(w in msg_lower for w in ["hola","buenas","hey","hi"]):
-        response = "¡Hola! Soy el asistente de Focumo. ¿En qué puedo ayudarte hoy? 🎯"
+    if OPENAI_API_KEY:
+        try:
+            response = _chat_openai(uid, message, db)
+        except Exception as e:
+            print(f"[openai] Error: {e}")
+            response = _chat_fallback(message.lower())
     else:
-        response = ("Entendido. Nuestro equipo revisará tu consulta. "
-                    "Para soporte urgente escríbenos a hello@focumo.app")
+        response = _chat_fallback(message.lower())
 
     db.execute("INSERT INTO chat_messages (user_id,role,message) VALUES(?,?,?)",
                (uid, "assistant", response))
@@ -1006,6 +1054,7 @@ def checkout_page():
                            google_enabled=GOOGLE_ENABLED,
                            stripe_link=STRIPE_PAYMENT_LINK,
                            stripe_public_key=STRIPE_PUBLIC_KEY,
+                           stripe_configured=bool(STRIPE_SECRET_KEY and STRIPE_PRICE_ID),
                            paypal_client_id=PAYPAL_CLIENT_ID)
 
 
@@ -1069,14 +1118,15 @@ def stripe_webhook():
 def create_checkout_session():
     """
     Crea una sesión de Stripe Checkout real.
-    Si STRIPE_SECRET_KEY no está configurado, redirige al mock.
+    Sin claves → redirige a /checkout (mock visual), NUNCA auto-PRO.
     """
     user = get_current_user()
     if is_pro(user):
         return jsonify({"url": url_for("app_page", _external=True)}), 200
 
     if not STRIPE_SECRET_KEY or not STRIPE_PRICE_ID:
-        return jsonify({"url": url_for("checkout_mock_success", _external=True)}), 200
+        # Sin claves: enviar a la página de checkout mock (NO a mock-success)
+        return jsonify({"url": url_for("checkout_page", _external=True)}), 200
 
     try:
         import stripe as stripe_lib
@@ -1092,7 +1142,7 @@ def create_checkout_session():
         return jsonify({"url": cs.url}), 200
     except Exception as e:
         print(f"[stripe session] Error: {e}")
-        return jsonify({"url": url_for("checkout_mock_success", _external=True)}), 200
+        return jsonify({"error": f"Error al crear sesión de pago: {e}"}), 500
 
 
 @app.route("/paypal/create-order", methods=["POST"])
