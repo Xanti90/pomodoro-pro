@@ -70,8 +70,8 @@ def security_headers(response):
     response.headers["Permissions-Policy"]        = "geolocation=(), microphone=(), camera=()"
     response.headers["Content-Security-Policy"]   = (
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' cdn.jsdelivr.net cdn.tailwindcss.com; "
-        "style-src 'self' 'unsafe-inline' cdn.tailwindcss.com fonts.googleapis.com; "
+        "script-src 'self' 'unsafe-inline' cdn.jsdelivr.net cdn.tailwindcss.com cdnjs.cloudflare.com; "
+        "style-src 'self' 'unsafe-inline' cdn.tailwindcss.com fonts.googleapis.com cdnjs.cloudflare.com; "
         "font-src 'self' fonts.gstatic.com; "
         "img-src 'self' data: *.googleusercontent.com lh3.googleusercontent.com; "
         "connect-src 'self' wttr.in; "

@@ -118,17 +118,26 @@ function cambiarModo(nuevoModo) {
   actualizarDisplay();
 }
 
-// ── TIMER ──────────────────────────────────────────────────
+// ── TIMER — rAF smooth ring + setInterval logic ─────────────
+let rafId          = null;
+let rafStartTime   = null;
+let rafStartSecs   = null;   // segundos al arrancar el rAF loop
+let visualOffset   = CIRC;   // offset actual del ring (suavizado)
+
 function toggleTimer() {
   corriendo ? pararTimer() : iniciarTimer();
 }
 
 function iniciarTimer() {
-  corriendo = true;
+  corriendo      = true;
+  rafStartTime   = performance.now();
+  rafStartSecs   = segundosRestantes;
   document.getElementById('play-icon').style.display  = 'none';
   document.getElementById('pause-icon').style.display = '';
   document.getElementById('ring-container').classList.add('running');
   intervalo = setInterval(tick, 1000);
+  cancelAnimationFrame(rafId);
+  rafId = requestAnimationFrame(rafFrame);
 }
 
 function pararTimer() {
@@ -137,13 +146,20 @@ function pararTimer() {
   document.getElementById('pause-icon').style.display = 'none';
   document.getElementById('ring-container').classList.remove('running');
   clearInterval(intervalo);
+  cancelAnimationFrame(rafId);
+  rafId = null;
 }
 
 function resetTimer() {
   pararTimer();
   segundosRestantes = MODOS[modo].duracion * 60;
   segundosTotales   = MODOS[modo].duracion * 60;
-  actualizarDisplay();
+  visualOffset      = CIRC;
+  actualizarDigits(segundosRestantes);
+  elRing.style.strokeDasharray  = CIRC;
+  elRing.style.strokeDashoffset = CIRC;
+  actualizarDot(1);
+  document.title = 'Focumo — Hackea tu enfoque';
 }
 
 function tick() {
@@ -152,29 +168,47 @@ function tick() {
     return;
   }
   segundosRestantes--;
-  actualizarDisplay();
+  // Solo actualizamos los dígitos — el ring lo maneja rAF
+  actualizarDigits(segundosRestantes);
+  if (corriendo) document.title = `${elTiempo.textContent} — Focumo`;
+}
+
+/* requestAnimationFrame loop: actualiza el ring cada frame (~60fps)
+   usando tiempo real para interpolación sub-segundo suave */
+function rafFrame(now) {
+  if (!corriendo) return;
+
+  const elapsedSec  = (now - rafStartTime) / 1000;
+  const visualSecs  = Math.max(0, rafStartSecs - elapsedSec);
+  const targetPct   = visualSecs / segundosTotales;
+  const targetOff   = CIRC * targetPct;
+
+  // Lerp suavizado: 12% del camino restante por frame → curva fluida
+  visualOffset += (targetOff - visualOffset) * 0.12;
+
+  elRing.style.strokeDasharray  = CIRC;
+  elRing.style.strokeDashoffset = visualOffset;
+  actualizarDot(visualOffset / CIRC);
+
+  rafId = requestAnimationFrame(rafFrame);
+}
+
+function actualizarDigits(segs) {
+  const m = Math.floor(segs / 60);
+  const s = segs % 60;
+  elTiempo.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
 }
 
 function actualizarDisplay() {
-  const m = Math.floor(segundosRestantes / 60);
-  const s = segundosRestantes % 60;
-  const timeStr = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-  elTiempo.textContent = timeStr;
-
-  const pct    = segundosRestantes / segundosTotales;
-  const offset = CIRC * pct;
+  actualizarDigits(segundosRestantes);
+  const pct = segundosRestantes / segundosTotales;
+  visualOffset = CIRC * pct;
   elRing.style.strokeDasharray  = CIRC;
-  elRing.style.strokeDashoffset = offset;
-
-  // Dot indicador en la punta del arco
+  elRing.style.strokeDashoffset = visualOffset;
   actualizarDot(pct);
-
-  // Título de pestaña
-  if (corriendo) {
-    document.title = `${timeStr} — Focumo`;
-  } else {
-    document.title = 'Focumo — Hackea tu enfoque';
-  }
+  document.title = corriendo
+    ? `${elTiempo.textContent} — Focumo`
+    : 'Focumo — Hackea tu enfoque';
 }
 
 function actualizarDot(pct) {
@@ -228,6 +262,7 @@ async function finSesion(saltada = false) {
     elPomCount.textContent = pomodorosHoy;
 
     reproducirSonido();
+    ringCompletionPulse();
     mostrarSiri('', 'Sesión completada', `${cfg.duracion} min de foco en "${categoria}"`);
 
     await guardarSesion({ tipo: 'trabajo', categoria, duracion: cfg.duracion, nota: elNota.value.trim() });
@@ -930,3 +965,192 @@ function agregarTyping() {
   container.scrollTop = container.scrollHeight;
   return div;
 }
+
+// ══════════════════════════════════════════════════════════════
+// GSAP ANIMATION ENGINE
+// Inicializa después de que el DOM + GSAP estén listos
+// ══════════════════════════════════════════════════════════════
+
+function initGSAP() {
+  if (typeof gsap === 'undefined') return;
+
+  // ── 1. SPRING PHYSICS en todos los botones ────────────────
+  const springTargets = [
+    '.btn-control',
+    '.btn-auth',
+    '.btn-primary-auth',
+    '.cat-btn',
+    '.mode-pill',
+    '.liga-filter-btn',
+    '.nav-btn',
+    '.btn-kofi',
+    '.pro-lock-btn',
+    '.chat-send',
+  ].join(',');
+
+  document.querySelectorAll(springTargets).forEach(btn => {
+    btn.addEventListener('mouseenter', () =>
+      gsap.to(btn, { scale: 1.06, duration: 0.35, ease: 'back.out(2.5)' })
+    );
+    btn.addEventListener('mouseleave', () =>
+      gsap.to(btn, { scale: 1, duration: 0.35, ease: 'back.out(2)' })
+    );
+    btn.addEventListener('mousedown', () =>
+      gsap.to(btn, { scale: 0.91, duration: 0.08, ease: 'power3.in' })
+    );
+    btn.addEventListener('mouseup', () =>
+      gsap.to(btn, { scale: 1, duration: 0.45, ease: 'elastic.out(1.3, 0.45)' })
+    );
+  });
+
+  // ── 2. PLAY BUTTON — elastic spring especial ─────────────
+  const playBtn = document.getElementById('btn-play');
+  if (playBtn) {
+    playBtn.addEventListener('click', () => {
+      gsap.fromTo(playBtn,
+        { scale: 0.82 },
+        { scale: 1, duration: 0.6, ease: 'elastic.out(1.4, 0.5)' }
+      );
+    });
+  }
+
+  // ── 3. LOGO — bounce + rotate on hover ───────────────────
+  const logoLink = document.getElementById('logo-link');
+  if (logoLink) {
+    const logoImg = logoLink.querySelector('img');
+    if (logoImg) {
+      logoImg.style.transformOrigin = 'center';
+      // Micro-float continuo (subtle)
+      gsap.to(logoImg, {
+        y: -2,
+        duration: 2.2,
+        repeat: -1,
+        yoyo: true,
+        ease: 'sine.inOut',
+      });
+      logoLink.addEventListener('mouseenter', () => {
+        gsap.to(logoImg, { rotation: -10, scale: 1.22, duration: 0.4, ease: 'back.out(3)' });
+      });
+      logoLink.addEventListener('mouseleave', () => {
+        gsap.to(logoImg, { rotation: 0, scale: 1, duration: 0.45, ease: 'elastic.out(1.2, 0.4)' });
+      });
+      logoLink.addEventListener('click', (e) => {
+        gsap.to(logoImg, {
+          rotation: 360, scale: 1.3, duration: 0.5, ease: 'back.out(2)',
+          onComplete: () => gsap.set(logoImg, { rotation: 0, scale: 1 }),
+        });
+      });
+    }
+  }
+
+  // ── 4. STAT CARDS — tilt 3D ───────────────────────────────
+  initTilt('.stat-card');
+  initTilt('.ranking-row');
+
+  // ── 5. ENTRADA del timer al cargar ────────────────────────
+  const timerCard = document.querySelector('.timer-card');
+  if (timerCard) {
+    gsap.from(timerCard, { y: 20, opacity: 0, duration: 0.6, ease: 'power3.out', delay: 0.1 });
+  }
+  gsap.from('.category-card', { y: 14, opacity: 0, duration: 0.5, ease: 'power2.out', delay: 0.05 });
+
+  // ── 6. Ring container — pop al iniciar sesión ─────────────
+  const ringContainer = document.getElementById('ring-container');
+  if (ringContainer) {
+    gsap.from(ringContainer, { scale: 0.88, opacity: 0, duration: 0.7, ease: 'elastic.out(1, 0.6)', delay: 0.2 });
+  }
+}
+
+// ── TILT 3D helper ────────────────────────────────────────────
+function initTilt(selector) {
+  if (typeof gsap === 'undefined') return;
+  document.querySelectorAll(selector).forEach(el => {
+    el.style.transformStyle = 'preserve-3d';
+    el.style.willChange = 'transform';
+
+    el.addEventListener('mousemove', (e) => {
+      const rect = el.getBoundingClientRect();
+      const cx   = rect.left + rect.width  / 2;
+      const cy   = rect.top  + rect.height / 2;
+      const dx   = (e.clientX - cx) / (rect.width  / 2);
+      const dy   = (e.clientY - cy) / (rect.height / 2);
+      gsap.to(el, {
+        rotateX:             -dy * 7,
+        rotateY:              dx * 7,
+        transformPerspective: 900,
+        duration:             0.25,
+        ease:                 'power2.out',
+      });
+    });
+
+    el.addEventListener('mouseleave', () => {
+      gsap.to(el, {
+        rotateX: 0, rotateY: 0,
+        duration: 0.55,
+        ease: 'elastic.out(1, 0.5)',
+      });
+    });
+  });
+}
+
+// ── SPA TRANSITIONS — fade suave entre vistas ─────────────────
+const _mostrarVistaOriginal = mostrarVista;
+mostrarVista = function(v) {
+  if (typeof gsap === 'undefined') {
+    _mostrarVistaOriginal(v);
+    return;
+  }
+
+  const current = document.querySelector('.vista:not(.hidden)');
+  const next    = document.getElementById(`vista-${v}`);
+  if (!next || current === next) return;
+
+  // Actualizar nav buttons
+  document.querySelectorAll('.nav-btn').forEach((b, i) => {
+    b.classList.toggle('active',
+      (i === 0 && v === 'timer') ||
+      (i === 1 && v === 'stats') ||
+      (i === 2 && v === 'ranking')
+    );
+  });
+
+  gsap.to(current, {
+    opacity: 0,
+    y: -6,
+    duration: 0.16,
+    ease: 'power2.in',
+    onComplete: () => {
+      current.classList.add('hidden');
+      gsap.set(current, { opacity: 1, y: 0 });
+      next.classList.remove('hidden');
+      gsap.fromTo(next,
+        { opacity: 0, y: 10 },
+        { opacity: 1, y: 0, duration: 0.28, ease: 'power3.out' }
+      );
+    },
+  });
+
+  if (v === 'stats')   cargarStats();
+  if (v === 'ranking') cargarRanking();
+};
+
+// ── Ring pulse al completar una sesión ───────────────────────
+function ringCompletionPulse() {
+  if (typeof gsap === 'undefined') return;
+  const ring = document.getElementById('ring-container');
+  if (!ring) return;
+  gsap.fromTo(ring,
+    { scale: 1 },
+    { scale: 1.04, duration: 0.18, ease: 'power2.out', yoyo: true, repeat: 3 }
+  );
+}
+
+// ── Arranque del motor GSAP ───────────────────────────────────
+// GSAP carga con defer, esperamos a que esté disponible
+(function waitForGSAP() {
+  if (typeof gsap !== 'undefined') {
+    initGSAP();
+  } else {
+    setTimeout(waitForGSAP, 50);
+  }
+})();

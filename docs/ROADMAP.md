@@ -1,6 +1,6 @@
 # Focumo — Roadmap & Ideas
 > Ecosistema de productividad gamificada. Modelo: Duolingo meets Deep Work.
-> Última actualización: 2026-03-31 (v3 — arquitectura estratégica, modelo freemium, ecosistema B2B)
+> Última actualización: 2026-03-31 (v4 — motor JS GSAP, rAF timer, Opoinfo B2B, política zero ads)
 
 ---
 
@@ -33,10 +33,22 @@ Nuestra meta es replicar el modelo de retención de Duolingo adaptado al alto re
 - Frontend: Tailwind avanzado, UI/UX Silicon Valley, copy persuasivo libre de rastro IA
 - Backend: API-First → cada endpoint diseñado para ser consumido también por apps móviles
 
-### Producto 2: Agencia Matriz B2B
-- Vende soluciones de digitalización de alto ticket
+### Producto 2: Foco Studio — Agencia Matriz B2B
+- Vende soluciones de digitalización de alto ticket bajo la marca Foco Studio
 - Focumo.app actúa como **caso de éxito principal** en pitches B2B
-- Naming en evaluación: ver sección "Decisiones de Marca"
+- **Proyecto Opoinfo:** plataforma BOE-tracker IA para academias de oposición
+  - Target: grandes academias que necesitan automatizar seguimiento de convocatorias
+  - Stack: scraping BOE + LLM para resumen/alertas + dashboard white-label
+  - Modelo: SaaS B2B, precio por academia (alto ticket)
+  - Bajo el paraguas de Foco Studio como product #2
+
+### Política de Monetización — CERO ANUNCIOS
+- **Prohibido cualquier modelo publicitario** (display ads, afiliados intrusivos, tracking)
+- Revenue 100% de:
+  1. Focumo PRO (pago único 4,99€)
+  2. Contratos B2B de Foco Studio (alto ticket)
+  3. Libro "El Método Focumo" en Amazon KDP
+- Razón: los anuncios destruyen la experiencia de foco. Contradicción de producto.
 
 ---
 
