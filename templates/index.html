@@ -3,129 +3,345 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🍅 Pomodoro Pro</title>
-  <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+  <title>Focumo — Tu foco, gamificado.</title>
   <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
-  <link rel="apple-touch-icon" href="/static/favicon.ico">
+  <meta name="description" content="Focumo: el temporizador Pomodoro con ranking global y medallas.">
   <link rel="stylesheet" href="/static/style.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
 
-  <!-- NAV -->
-  <nav>
-    <div class="logo">🍅 Pomodoro Pro</div>
-    <div class="nav-tabs">
-      <button class="nav-btn active" onclick="mostrarVista('timer')">Temporizador</button>
-      <button class="nav-btn" onclick="mostrarVista('stats')">Estadísticas</button>
+<!-- ══ OVERLAY SIRI ══════════════════════════════════════════ -->
+<div id="siri-overlay" class="siri-overlay hidden" onclick="cerrarSiri()">
+  <div class="siri-rings">
+    <div class="siri-ring r1"></div><div class="siri-ring r2"></div>
+    <div class="siri-ring r3"></div><div class="siri-ring r4"></div>
+    <div class="siri-ring r5"></div>
+  </div>
+  <div class="siri-content">
+    <div class="siri-emoji" id="siri-emoji">🍅</div>
+    <h2  class="siri-title" id="siri-title">¡Pomodoro completado!</h2>
+    <p   class="siri-msg"   id="siri-msg">Mantuviste el foco. ¡Descansa!</p>
+    <span class="siri-tap">Toca para continuar</span>
+  </div>
+</div>
+
+<!-- ══ MODAL BUG REPORT ═════════════════════════════════════ -->
+<div id="modal-bug" class="modal-overlay hidden" onclick="cerrarBugModal(event)">
+  <div class="modal-card">
+    <h3 class="modal-title">🐛 Reportar un problema</h3>
+    <textarea id="bug-desc" class="bug-textarea" rows="4"
+              placeholder="Describe el problema con el mayor detalle posible…"></textarea>
+    <div class="modal-actions">
+      <button class="btn-modal-cancel" onclick="cerrarBugModal()">Cancelar</button>
+      <button class="btn-modal-ok" onclick="enviarBugReport()">Enviar reporte</button>
     </div>
-  </nav>
+  </div>
+</div>
 
-  <!-- ══════════════════════════════════ VISTA TIMER ══ -->
-  <div id="vista-timer" class="vista">
-
-    <!-- Selector de categoría -->
-    <div class="card category-card">
-      <p class="label">¿En qué vas a trabajar?</p>
-      <div class="category-grid" id="category-grid">
-        <button class="cat-btn active" data-cat="Certificación IA" onclick="seleccionarCat(this)">🤖 Certificación IA</button>
-        <button class="cat-btn"        data-cat="Trabajo Freelance" onclick="seleccionarCat(this)">💼 Freelance</button>
-        <button class="cat-btn"        data-cat="Libro KDP"       onclick="seleccionarCat(this)">✍️ Libro KDP</button>
-        <button class="cat-btn"        data-cat="Proyectos IA"    onclick="seleccionarCat(this)">🤖 Proyectos IA</button>
-        <button class="cat-btn"        data-cat="Personal"        onclick="seleccionarCat(this)">🌱 Personal</button>
-        <button class="cat-btn"        data-cat="Otro"            onclick="seleccionarCat(this)">⚡ Otro</button>
-      </div>
-      <input type="text" id="nota-input" class="nota-input" placeholder="Nota opcional: ¿qué exactamente? (ej: Tema 3 Historia Antigua)">
+<!-- ══ MODAL CATEGORÍA ══════════════════════════════════════ -->
+<div id="modal-cat" class="modal-overlay hidden" onclick="cerrarCatModal(event)">
+  <div class="modal-card">
+    <h3 class="modal-title">➕ Nueva categoría</h3>
+    <div class="field-group">
+      <label class="field-label">Emoji</label>
+      <input type="text" id="cat-emoji" class="field-input" value="📌" maxlength="2">
     </div>
-
-    <!-- Timer principal -->
-    <div class="card timer-card">
-      <div class="mode-pills">
-        <button class="mode-pill active" id="pill-trabajo"       onclick="cambiarModo('trabajo')">Trabajo</button>
-        <button class="mode-pill"        id="pill-descanso-corto" onclick="cambiarModo('descanso-corto')">Descanso corto</button>
-        <button class="mode-pill"        id="pill-descanso-largo" onclick="cambiarModo('descanso-largo')">Descanso largo</button>
-      </div>
-
-      <div class="ring-container">
-        <svg class="ring" viewBox="0 0 280 280">
-          <circle class="ring-bg"   cx="140" cy="140" r="120"/>
-          <circle class="ring-fill" cx="140" cy="140" r="120" id="ring-fill"/>
-        </svg>
-        <div class="timer-display">
-          <span id="timer-time">25:00</span>
-          <span id="timer-label">Trabaja</span>
+    <div class="field-group">
+      <label class="field-label">Nombre</label>
+      <input type="text" id="cat-nombre" class="field-input" placeholder="ej. Upwork">
+    </div>
+    <div class="field-group">
+      <label class="field-label">Color</label>
+      <div class="color-row">
+        <input type="color" id="cat-color" value="#B8733A" class="color-picker">
+        <div class="color-presets">
+          <span class="color-dot" style="background:#B8733A" onclick="setColor('#B8733A')"></span>
+          <span class="color-dot" style="background:#F2C050" onclick="setColor('#F2C050')"></span>
+          <span class="color-dot" style="background:#7A9E7E" onclick="setColor('#7A9E7E')"></span>
+          <span class="color-dot" style="background:#7A90A4" onclick="setColor('#7A90A4')"></span>
+          <span class="color-dot" style="background:#C06090" onclick="setColor('#C06090')"></span>
+          <span class="color-dot" style="background:#6070C0" onclick="setColor('#6070C0')"></span>
         </div>
       </div>
-
-      <div class="controls">
-        <button class="btn-control btn-secondary" onclick="resetTimer()" title="Reiniciar">↺</button>
-        <button class="btn-control btn-primary"   id="btn-play" onclick="toggleTimer()">▶</button>
-        <button class="btn-control btn-secondary" onclick="saltarSesion()" title="Saltar">⏭</button>
-      </div>
-
-      <div class="session-info">
-        <span class="info-pill">🍅 <span id="pomodoro-count">0</span> hoy</span>
-        <span class="info-pill">📅 Ronda <span id="ronda-count">1</span>/4</span>
-        <span id="categoria-display" class="info-pill cat-active">🤖 Certificación IA</span>
-      </div>
     </div>
+    <div class="modal-actions">
+      <button class="btn-modal-cancel" onclick="cerrarCatModal()">Cancelar</button>
+      <button class="btn-modal-ok" onclick="guardarCategoria()">Crear</button>
+    </div>
+  </div>
+</div>
 
+<!-- ══ NAV ═══════════════════════════════════════════════════ -->
+<nav>
+  <div class="logo">
+    <img src="/static/favicon.svg" alt="Focumo" style="width:24px;height:24px;vertical-align:middle;margin-right:4px">
+    <span>Focumo</span>
   </div>
 
-  <!-- ══════════════════════════════════ VISTA STATS ══ -->
-  <div id="vista-stats" class="vista hidden">
+  <div class="nav-tabs">
+    <button class="nav-btn active" onclick="mostrarVista('timer')">Temporizador</button>
+    <button class="nav-btn"        onclick="mostrarVista('stats')">Estadísticas</button>
+    <button class="nav-btn"        onclick="mostrarVista('ranking')">Ranking 🏆</button>
+  </div>
 
-    <div class="stats-header">
-      <h2>Mis Estadísticas</h2>
-      <p class="stats-sub">Resumen de tu productividad</p>
+  <div class="nav-right">
+    <button class="nav-icon-btn" id="btn-sonido" onclick="toggleSoundPanel()" title="Sonidos">🔔</button>
+    <div class="user-menu" onclick="toggleUserMenu()">
+      {% if user and user.avatar_url %}
+        <img src="{{ user.avatar_url }}" class="user-avatar" alt="{{ user.name }}">
+      {% else %}
+        <div class="user-avatar-text">{{ (user.name or 'U')[0].upper() }}</div>
+      {% endif %}
+      <span class="user-name">{{ user.name }}</span>
+      {% for m in medals[:1] %}
+        <span class="medal-badge-nav medal-{{ m.tipo }}">
+          {{ '🥇' if m.tipo == 'gold' else '🥈' if m.tipo == 'silver' else '🥉' }}
+        </span>
+      {% endfor %}
+      <span class="user-caret">▾</span>
+    </div>
+    <div id="user-dropdown" class="user-dropdown hidden">
+      <div class="user-info">
+        <div class="user-info-name">{{ user.name }}</div>
+        <div class="user-info-email">{{ user.email }}</div>
+      </div>
+      <button class="dropdown-item" onclick="abrirBugModal()">🐛 Reportar bug</button>
+      <a href="https://ko-fi.com/pomodoropro" target="_blank" class="dropdown-item">☕ Apoya el proyecto</a>
+      <button class="dropdown-item" onclick="compartirStats()">📤 Compartir mis stats</button>
+      <a href="/logout" class="dropdown-item logout-item">Cerrar sesión</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ══ PANEL SONIDOS ════════════════════════════════════════ -->
+<div id="sound-panel" class="sound-panel hidden">
+  <div class="sound-panel-title">🔔 Sonido al completar</div>
+  <div class="sound-options">
+    <button class="sound-opt active" data-sound="campana"  onclick="seleccionarSonido(this)">🔔 Campana</button>
+    <button class="sound-opt"        data-sound="bocina"   onclick="seleccionarSonido(this)">📯 Bocina</button>
+    <button class="sound-opt"        data-sound="boing"    onclick="seleccionarSonido(this)">🐰 Boing!</button>
+    <button class="sound-opt"        data-sound="fanfaria" onclick="seleccionarSonido(this)">🎺 Fanfarria</button>
+    <button class="sound-opt"        data-sound="chime"    onclick="seleccionarSonido(this)">✨ Chime</button>
+  </div>
+  <div class="volume-row">
+    <span>🔇</span>
+    <input type="range" id="vol-slider" min="0" max="1" step="0.05" value="0.7"
+           oninput="cambiarVolumen(this.value)" class="vol-slider">
+    <span>🔊</span>
+  </div>
+  <button class="sound-test-btn" onclick="probarSonido()">▶ Probar</button>
+</div>
+
+<!-- ══ VISTA TIMER ══════════════════════════════════════════ -->
+<div id="vista-timer" class="vista">
+
+  <div class="card category-card">
+    <p class="label">¿En qué vas a trabajar?</p>
+    <div class="category-grid" id="category-grid">
+      <button class="cat-btn active" data-cat="Certificación IA" onclick="seleccionarCat(this)">🤖 Certif. IA</button>
+      <button class="cat-btn" data-cat="Trabajo Freelance"  onclick="seleccionarCat(this)">💼 Freelance</button>
+      <button class="cat-btn" data-cat="Libro KDP"          onclick="seleccionarCat(this)">✍️ Libro KDP</button>
+      <button class="cat-btn" data-cat="Proyectos IA"       onclick="seleccionarCat(this)">🚀 Proyectos IA</button>
+      <button class="cat-btn" data-cat="Personal"           onclick="seleccionarCat(this)">🌱 Personal</button>
+      <button class="cat-btn" data-cat="Otro"               onclick="seleccionarCat(this)">⚡ Otro</button>
+    </div>
+    <div id="custom-cats-grid" class="category-grid" style="margin-top:8px"></div>
+    <button class="btn-add-cat" onclick="abrirCatModal()">＋ Nueva categoría</button>
+    <input type="text" id="nota-input" class="nota-input"
+           placeholder="¿Qué exactamente? (ej: Módulo 3 Google AI)">
+  </div>
+
+  <div class="card timer-card">
+    <div class="mode-pills">
+      <button class="mode-pill active" id="pill-trabajo"        onclick="cambiarModo('trabajo')">Trabajo</button>
+      <button class="mode-pill"        id="pill-descanso-corto" onclick="cambiarModo('descanso-corto')">Descanso corto</button>
+      <button class="mode-pill"        id="pill-descanso-largo" onclick="cambiarModo('descanso-largo')">Descanso largo</button>
     </div>
 
-    <!-- Tarjetas resumen -->
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-icon">🍅</div>
-        <div class="stat-value" id="stat-total">0</div>
-        <div class="stat-label">Pomodoros totales</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon">⏱️</div>
-        <div class="stat-value" id="stat-horas">0h</div>
-        <div class="stat-label">Horas de enfoque</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon">🔥</div>
-        <div class="stat-value" id="stat-racha">0</div>
-        <div class="stat-label">Días de racha</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon">📅</div>
-        <div class="stat-value" id="stat-hoy">0</div>
-        <div class="stat-label">Pomodoros hoy</div>
+    <div class="ring-container">
+      <svg class="ring" viewBox="0 0 280 280">
+        <circle class="ring-bg"   cx="140" cy="140" r="120"/>
+        <circle class="ring-fill" cx="140" cy="140" r="120" id="ring-fill"/>
+      </svg>
+      <div class="timer-display">
+        <span id="timer-time">25:00</span>
+        <span id="timer-label">Trabaja</span>
       </div>
     </div>
 
-    <!-- Gráficos -->
-    <div class="charts-row">
-      <div class="card chart-card">
-        <h3>Últimos 7 días</h3>
-        <canvas id="chart-dias"></canvas>
-      </div>
-      <div class="card chart-card">
-        <h3>Tiempo por categoría</h3>
-        <canvas id="chart-cats"></canvas>
-      </div>
+    <div class="controls">
+      <button class="btn-control btn-secondary" onclick="resetTimer()" title="Reiniciar">↺</button>
+      <button class="btn-control btn-primary"   id="btn-play" onclick="toggleTimer()">▶</button>
+      <button class="btn-control btn-secondary" onclick="saltarSesion()" title="Saltar">⏭</button>
     </div>
 
-    <!-- Historial -->
-    <div class="card historial-card">
+    <div class="session-info">
+      <span class="info-pill">🍅 <span id="pomodoro-count">0</span> hoy</span>
+      <span class="info-pill">🔥 <span id="racha-count">0</span> días</span>
+      <span class="info-pill">📅 Ronda <span id="ronda-count">1</span>/4</span>
+      <span id="categoria-display" class="info-pill cat-active">🤖 Certif. IA</span>
+    </div>
+  </div>
+
+  <!-- Ko-fi banner -->
+  <div class="kofi-banner">
+    <span>☕ ¿Te ayuda a ser más productivo?</span>
+    <a href="https://ko-fi.com/pomodoropro" target="_blank" class="btn-kofi">
+      Invítame a un café
+    </a>
+  </div>
+
+</div>
+
+<!-- ══ VISTA STATS ═══════════════════════════════════════════ -->
+<div id="vista-stats" class="vista hidden">
+
+  <div class="stats-header">
+    <h2>Mis Estadísticas</h2>
+    <p class="stats-sub">Tu historial completo de productividad</p>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon">🍅</div>
+      <div class="stat-value" id="stat-total">0</div>
+      <div class="stat-label">Pomodoros totales</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">⏱️</div>
+      <div class="stat-value" id="stat-horas">0h</div>
+      <div class="stat-label">Horas de enfoque</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🔥</div>
+      <div class="stat-value" id="stat-racha">0</div>
+      <div class="stat-label">Días de racha</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">📅</div>
+      <div class="stat-value" id="stat-hoy">0</div>
+      <div class="stat-label">Pomodoros hoy</div>
+    </div>
+  </div>
+
+  <!-- Mapa de calor GitHub -->
+  <div class="card heatmap-card">
+    <h3>Actividad anual <span class="heatmap-sub" id="heatmap-total"></span></h3>
+    <div id="heatmap-grid" class="heatmap-grid"></div>
+    <div class="heatmap-legend">
+      <span class="legend-label">Menos</span>
+      <span class="heatmap-dot" style="background:var(--hm0)"></span>
+      <span class="heatmap-dot" style="background:var(--hm1)"></span>
+      <span class="heatmap-dot" style="background:var(--hm2)"></span>
+      <span class="heatmap-dot" style="background:var(--hm3)"></span>
+      <span class="heatmap-dot" style="background:var(--hm4)"></span>
+      <span class="legend-label">Más</span>
+    </div>
+  </div>
+
+  <!-- Gráficos -->
+  <div class="charts-row">
+    <div class="card chart-card">
+      <h3>Últimos 7 días</h3>
+      <canvas id="chart-dias"></canvas>
+    </div>
+    <div class="card chart-card">
+      <h3>Tiempo por categoría</h3>
+      <canvas id="chart-cats"></canvas>
+    </div>
+  </div>
+
+  <!-- Historial -->
+  <div class="card historial-card">
+    <div class="historial-header">
       <h3>Historial reciente</h3>
-      <div id="historial-lista" class="historial-lista">
-        <p class="empty-msg">Aún no hay sesiones registradas. ¡Empieza tu primer Pomodoro!</p>
-      </div>
+      <button class="btn-share" onclick="compartirStats()">📤 Compartir</button>
     </div>
-
+    <div id="historial-lista" class="historial-lista">
+      <p class="empty-msg">¡Completa tu primer Pomodoro para ver el historial!</p>
+    </div>
   </div>
 
-  <script src="/static/app.js"></script>
+</div>
+
+<!-- ══ VISTA RANKING ═════════════════════════════════════════ -->
+<div id="vista-ranking" class="vista hidden">
+
+  <div class="stats-header">
+    <h2>Ranking Global 🏆</h2>
+    <p class="stats-sub" id="ranking-mes">Este mes — cargando…</p>
+  </div>
+
+  <div id="ranking-lista" class="ranking-lista">
+    <p class="empty-msg">Cargando ranking…</p>
+  </div>
+
+  <div class="medals-info card">
+    <h3>🎖️ Sistema de Medallas</h3>
+    <p class="medals-desc">
+      El primer día de cada mes, los tres usuarios con más Pomodoros del mes anterior
+      reciben medallas permanentes. ¡Se muestran junto a tu nombre en el ranking!
+    </p>
+    <div class="medals-row">
+      <div class="medal-item"><span>🥇</span><span>Oro — 1er puesto</span></div>
+      <div class="medal-item"><span>🥈</span><span>Plata — 2o puesto</span></div>
+      <div class="medal-item"><span>🥉</span><span>Bronce — 3er puesto</span></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══ FOOTER ════════════════════════════════════════════════ -->
+<footer class="app-footer">
+  <span>© 2026 Santiago Jiménez Téllez. Todos los derechos reservados.</span>
+  <span class="footer-sep">·</span>
+  <a href="/privacy">Política de Privacidad</a>
+  <span class="footer-sep">·</span>
+  <a href="/terms">Términos del Servicio</a>
+  <span class="footer-sep">·</span>
+  <a href="mailto:hello@focumo.app">hello@focumo.app</a>
+  <span class="footer-sep">·</span>
+  <a href="mailto:hello@focumo.app?subject=Sugerencia">💡 Sugerencias</a>
+</footer>
+
+<!-- ══ AI CHAT WIDGET ════════════════════════════════════════ -->
+<div id="chat-widget" class="chat-widget">
+  <!-- Botón flotante -->
+  <button id="chat-toggle" class="chat-toggle" onclick="toggleChat()" title="Asistente Focumo">
+    <span id="chat-icon">🤖</span>
+    <span id="chat-badge" class="chat-badge hidden">1</span>
+  </button>
+
+  <!-- Panel -->
+  <div id="chat-panel" class="chat-panel hidden">
+    <div class="chat-header">
+      <div class="chat-header-info">
+        <span class="chat-avatar">🤖</span>
+        <div>
+          <div class="chat-name">Asistente Focumo</div>
+          <div class="chat-status">● En línea</div>
+        </div>
+      </div>
+      <button class="chat-close" onclick="toggleChat()">✕</button>
+    </div>
+    <div id="chat-messages" class="chat-messages">
+      <div class="chat-msg chat-msg-bot">
+        <span>¡Hola! Soy el asistente de Focumo. Puedo ayudarte con soporte, sugerencias o contarte sobre nuestros planes. ¿En qué te ayudo? 🎯</span>
+      </div>
+    </div>
+    <div class="chat-input-row">
+      <input type="text" id="chat-input" class="chat-input"
+             placeholder="Escribe tu mensaje…"
+             onkeydown="if(event.key==='Enter') enviarChat()">
+      <button class="chat-send" onclick="enviarChat()">➤</button>
+    </div>
+    <div class="chat-footer-note">
+      Powered by Focumo AI · <a href="mailto:hello@focumo.app">Contacto humano</a>
+    </div>
+  </div>
+</div>
+
+<script src="/static/app.js"></script>
 </body>
 </html>

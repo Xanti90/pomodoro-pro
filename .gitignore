@@ -1,26 +1,58 @@
-# Datos privados de sesiones — NUNCA subir a GitHub
-data/sessions.json
-data/*.json
+# ══ FOCUMO — .gitignore ══════════════════════════════════
+# Nunca subir credenciales, bases de datos locales ni logs.
 
-# Credenciales y secretos
-*.env
+# ── Base de datos local ──────────────────────────────────
+data/
+*.db
+*.db-bak
+*.json.bak
+
+# ── Credenciales y secretos ──────────────────────────────
 .env
-secrets.json
+*.env
+.env.*
+.secret_key
+data/.secret_key
+google_token.json
+*_token.json
 *_credentials.json
-*_secret*.json
-token*.json
+client_secret*.json
+service_account*.json
 
-# Python
+# ── Python ───────────────────────────────────────────────
 __pycache__/
-*.pyc
+*.py[cod]
 *.pyo
+*.pyd
+.Python
 .venv/
 venv/
+env/
+ENV/
+dist/
+build/
+*.egg-info/
 
-# macOS
+# ── macOS ────────────────────────────────────────────────
 .DS_Store
 .AppleDouble
+.LSOverride
+._*
 
-# Logs
+# ── Logs y runtime ───────────────────────────────────────
 *.log
-/tmp/
+logs/
+nohup.out
+*.pid
+*.sock
+
+# ── IDE ──────────────────────────────────────────────────
+.vscode/settings.json
+.idea/
+*.swp
+*~
+
+# ── Deploy ───────────────────────────────────────────────
+.vercel
+.render
+staticfiles/

@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: focumo
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python app.py
+    envVars:
+      - key: PRODUCTION
+        value: "1"
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REDIRECT_URI
+        value: https://focumo.app/auth/google/callback
+    disk:
+      name: focumo-data
+      mountPath: /opt/render/project/src/data
+      sizeGB: 1

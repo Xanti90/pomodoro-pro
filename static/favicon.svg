@@ -1,17 +1,27 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <!-- Hoja verde -->
-  <ellipse cx="50" cy="18" rx="6" ry="12" fill="#2ecc71" transform="rotate(-20 50 18)"/>
-  <ellipse cx="50" cy="18" rx="6" ry="12" fill="#27ae60" transform="rotate(20 50 18)"/>
-  <ellipse cx="50" cy="16" rx="3" ry="8"  fill="#2ecc71"/>
-  <!-- Tallo -->
-  <rect x="48" y="10" width="4" height="10" rx="2" fill="#27ae60"/>
-  <!-- Cuerpo del tomate -->
-  <circle cx="50" cy="60" r="36" fill="#e74c3c"/>
-  <!-- Brillo -->
-  <ellipse cx="38" cy="44" rx="9" ry="6" fill="rgba(255,255,255,0.25)" transform="rotate(-30 38 44)"/>
-  <!-- Sombra inferior -->
-  <ellipse cx="50" cy="78" rx="28" ry="12" fill="#c0392b"/>
-  <!-- Surcos del tomate -->
-  <path d="M50 24 Q30 45 32 68" stroke="#c0392b" stroke-width="2" fill="none" opacity="0.5"/>
-  <path d="M50 24 Q70 45 68 68" stroke="#c0392b" stroke-width="2" fill="none" opacity="0.5"/>
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#D4924F"/>
+      <stop offset="100%" stop-color="#B8733A"/>
+    </linearGradient>
+    <linearGradient id="ring" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#F2C050"/>
+      <stop offset="100%" stop-color="#FBF3E3" stop-opacity="0.8"/>
+    </linearGradient>
+  </defs>
+  <!-- Fondo circular -->
+  <circle cx="50" cy="50" r="48" fill="url(#bg)"/>
+  <!-- Anillo exterior decorativo -->
+  <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="2"/>
+  <!-- Arco de progreso (el "foco") -->
+  <circle cx="50" cy="50" r="38" fill="none" stroke="url(#ring)" stroke-width="4"
+          stroke-linecap="round" stroke-dasharray="200 240" stroke-dashoffset="60"
+          transform="rotate(-90 50 50)"/>
+  <!-- Letra F -->
+  <text x="50" y="64" font-family="-apple-system,BlinkMacSystemFont,SF Pro Display,sans-serif"
+        font-weight="900" font-size="44" fill="white" text-anchor="middle"
+        letter-spacing="-2">F</text>
+  <!-- Punto de acento (amarillo) -->
+  <circle cx="68" cy="32" r="7" fill="#F2C050"/>
+  <circle cx="68" cy="32" r="4" fill="white" opacity="0.9"/>
 </svg>

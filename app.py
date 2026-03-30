@@ -1,159 +1,804 @@
 """
-POMODORO PRO — Backend Flask
-Autor: Santiago Jiménez
+FOCUMO v1.0 — Backend SaaS
+Gamificación · Leaderboard · Medallas · Categorías · Referidos · IA Chat
+Autor: Santiago Jiménez Téllez  |  © 2026 All rights reserved
 """
 
-import json
-import subprocess
+import json, os, secrets, sqlite3, subprocess
+from calendar import monthrange
+from datetime import date, datetime, timedelta
+from functools import wraps
 from pathlib import Path
-from datetime import datetime, date, timedelta
-from typing import Any, Dict, List
-from flask import Flask, render_template, jsonify, request  # type: ignore[import-untyped]
+from typing import Any, Dict, List, Optional
+from urllib.parse import urlencode
 
+import requests
+from flask import (Flask, g, jsonify, redirect, render_template,
+                   request, session, url_for)
+from werkzeug.security import check_password_hash, generate_password_hash
+
+# ─── RUTAS ────────────────────────────────────────────────────
+BASE_DIR    = Path(__file__).parent
+DATA_DIR    = BASE_DIR / "data"
+DB_PATH     = DATA_DIR / "focumo.db"
+SECRET_FILE = DATA_DIR / ".secret_key"
+OLD_JSON    = DATA_DIR / "sessions.json"
+OLD_DB      = DATA_DIR / "pomodoro.db"   # migración nombre antiguo
+DATA_DIR.mkdir(exist_ok=True)
+
+# Migrar nombre de DB si existe la antigua
+if OLD_DB.exists() and not DB_PATH.exists():
+    OLD_DB.rename(DB_PATH)
+
+if SECRET_FILE.exists():
+    _SECRET_KEY = SECRET_FILE.read_text().strip()
+else:
+    _SECRET_KEY = secrets.token_hex(32)
+    SECRET_FILE.write_text(_SECRET_KEY)
+    SECRET_FILE.chmod(0o600)
+
+# ─── GOOGLE OAUTH ─────────────────────────────────────────────
+GOOGLE_CLIENT_ID     = os.environ.get("GOOGLE_CLIENT_ID",     "")
+GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "")
+GOOGLE_REDIRECT_URI  = os.environ.get("GOOGLE_REDIRECT_URI",
+                        "http://localhost:5050/auth/google/callback")
+GOOGLE_ENABLED       = bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET)
+
+GOOGLE_AUTH_URL     = "https://accounts.google.com/o/oauth2/v2/auth"
+GOOGLE_TOKEN_URL    = "https://oauth2.googleapis.com/token"
+GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo"
+
+# ─── APP FLASK ─────────────────────────────────────────────────
 app = Flask(__name__)
-
-DATA_FILE = Path(__file__).parent / "data" / "sessions.json"
-DATA_FILE.parent.mkdir(exist_ok=True)
-
-
-# ─────────────────────────────────────────────────────────────
-# PERSISTENCIA
-# ─────────────────────────────────────────────────────────────
-
-def cargar_sesiones() -> List[Dict[str, Any]]:
-    if DATA_FILE.exists():
-        with open(DATA_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return []
+app.secret_key = _SECRET_KEY
+app.config["SESSION_COOKIE_SAMESITE"]    = "Lax"
+app.config["SESSION_COOKIE_HTTPONLY"]    = True
+app.config["SESSION_COOKIE_SECURE"]      = os.environ.get("PRODUCTION", "") == "1"
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=30)
 
 
-def guardar_sesiones(sesiones: List[Dict[str, Any]]) -> None:
-    with open(DATA_FILE, "w", encoding="utf-8") as f:
-        json.dump(sesiones, f, ensure_ascii=False, indent=2)
+# ══════════════════════════════════════════════════════════════
+# SEGURIDAD — Cabeceras HTTP
+# ══════════════════════════════════════════════════════════════
+
+@app.after_request
+def security_headers(response):
+    response.headers["X-Content-Type-Options"]    = "nosniff"
+    response.headers["X-Frame-Options"]           = "DENY"
+    response.headers["X-XSS-Protection"]          = "1; mode=block"
+    response.headers["Referrer-Policy"]           = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"]        = "geolocation=(), microphone=(), camera=()"
+    response.headers["Content-Security-Policy"]   = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' cdn.jsdelivr.net cdn.tailwindcss.com; "
+        "style-src 'self' 'unsafe-inline' cdn.tailwindcss.com fonts.googleapis.com; "
+        "font-src 'self' fonts.gstatic.com; "
+        "img-src 'self' data: *.googleusercontent.com lh3.googleusercontent.com; "
+        "connect-src 'self' wttr.in; "
+        "frame-ancestors 'none';"
+    )
+    return response
 
 
-# ─────────────────────────────────────────────────────────────
-# NOTIFICACIONES macOS
-# ─────────────────────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════
+# BASE DE DATOS
+# ══════════════════════════════════════════════════════════════
 
-def notificar(titulo: str, mensaje: str) -> None:
-    script = f'display notification "{mensaje}" with title "{titulo}" sound name "Glass"'
+def get_db() -> sqlite3.Connection:
+    if "db" not in g:
+        g.db = sqlite3.connect(str(DB_PATH), detect_types=sqlite3.PARSE_DECLTYPES)
+        g.db.row_factory = sqlite3.Row
+        g.db.execute("PRAGMA foreign_keys = ON")
+    return g.db
+
+@app.teardown_appcontext
+def close_db(e: Any = None) -> None:
+    db = g.pop("db", None)
+    if db: db.close()
+
+def init_db() -> None:
+    db = sqlite3.connect(str(DB_PATH))
+    db.executescript("""
+        CREATE TABLE IF NOT EXISTS users (
+            id             INTEGER  PRIMARY KEY AUTOINCREMENT,
+            email          TEXT     UNIQUE NOT NULL,
+            password_hash  TEXT,
+            google_id      TEXT     UNIQUE,
+            name           TEXT     NOT NULL DEFAULT 'Usuario',
+            avatar_url     TEXT     DEFAULT '',
+            plan           TEXT     NOT NULL DEFAULT 'free',
+            pro_expires_at TIMESTAMP,
+            referral_code  TEXT     UNIQUE,
+            created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS referrals (
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            referrer_id  INTEGER NOT NULL,
+            referred_id  INTEGER NOT NULL,
+            created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            activated_at TIMESTAMP,
+            pro_granted  INTEGER DEFAULT 0,
+            FOREIGN KEY (referrer_id) REFERENCES users(id),
+            FOREIGN KEY (referred_id) REFERENCES users(id)
+        );
+
+        CREATE TABLE IF NOT EXISTS categories (
+            id      INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            nombre  TEXT    NOT NULL,
+            color   TEXT    DEFAULT '#B8733A',
+            emoji   TEXT    DEFAULT '📌',
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS sessions (
+            id        INTEGER  PRIMARY KEY AUTOINCREMENT,
+            user_id   INTEGER  NOT NULL,
+            fecha     TIMESTAMP NOT NULL,
+            tipo      TEXT     NOT NULL DEFAULT 'trabajo',
+            categoria TEXT     DEFAULT 'General',
+            duracion  INTEGER  DEFAULT 25,
+            nota      TEXT     DEFAULT '',
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS medals (
+            id        INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id   INTEGER NOT NULL,
+            tipo      TEXT    NOT NULL,
+            mes       TEXT    NOT NULL,
+            pomodoros INTEGER NOT NULL,
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        );
+
+        CREATE TABLE IF NOT EXISTS bug_reports (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id     INTEGER,
+            descripcion TEXT NOT NULL,
+            fecha       TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS chat_messages (
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id    INTEGER,
+            role       TEXT NOT NULL,
+            message    TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        );
+    """)
+    # Migraciones de columnas existentes (idempotentes)
+    _ensure_column(db, "users", "plan", "TEXT NOT NULL DEFAULT 'free'")
+    _ensure_column(db, "users", "pro_expires_at", "TIMESTAMP")
+    _ensure_column(db, "users", "referral_code", "TEXT UNIQUE")
+    db.commit()
+    db.close()
+    _migrar_json()
+    _generar_codigos_referido_faltantes()
+
+def _ensure_column(db, table: str, col: str, col_def: str) -> None:
+    cols = [r[1] for r in db.execute(f"PRAGMA table_info({table})").fetchall()]
+    if col not in cols:
+        try:
+            db.execute(f"ALTER TABLE {table} ADD COLUMN {col} {col_def}")
+        except Exception:
+            pass
+
+def _generar_codigos_referido_faltantes() -> None:
+    """Genera referral_code para usuarios que aún no lo tienen."""
     try:
-        subprocess.run(["osascript", "-e", script], check=False, timeout=5)
+        db = sqlite3.connect(str(DB_PATH))
+        sin_codigo = db.execute(
+            "SELECT id FROM users WHERE referral_code IS NULL"
+        ).fetchall()
+        for row in sin_codigo:
+            code = secrets.token_urlsafe(8)
+            db.execute("UPDATE users SET referral_code=? WHERE id=?", (code, row[0]))
+        if sin_codigo:
+            db.commit()
+        db.close()
     except Exception:
         pass
 
+def _migrar_json() -> None:
+    if not OLD_JSON.exists(): return
+    try:
+        sesiones = json.loads(OLD_JSON.read_text(encoding="utf-8"))
+        if not sesiones: return
+        db = sqlite3.connect(str(DB_PATH))
+        cur = db.execute("SELECT id FROM users WHERE email='santiago@focumo.local'")
+        row = cur.fetchone()
+        uid = row[0] if row else None
+        if not uid:
+            code = secrets.token_urlsafe(8)
+            db.execute("INSERT INTO users (email,name,referral_code) VALUES (?,?,?)",
+                       ("santiago@focumo.local","Santiago", code))
+            db.commit()
+            uid = db.execute("SELECT last_insert_rowid()").fetchone()[0]
+        if db.execute("SELECT COUNT(*) FROM sessions WHERE user_id=?",(uid,)).fetchone()[0] == 0:
+            for s in sesiones:
+                db.execute(
+                    "INSERT INTO sessions (user_id,fecha,tipo,categoria,duracion,nota) VALUES(?,?,?,?,?,?)",
+                    (uid, s.get("fecha",datetime.now().isoformat()),
+                     s.get("tipo","trabajo"), s.get("categoria","General"),
+                     s.get("duracion",25), s.get("nota","")))
+            db.commit()
+        db.close()
+        OLD_JSON.rename(OLD_JSON.with_suffix(".json.bak"))
+    except Exception: pass
 
-# ─────────────────────────────────────────────────────────────
+
+# ══════════════════════════════════════════════════════════════
+# AUTH HELPERS
+# ══════════════════════════════════════════════════════════════
+
+def login_required(f):
+    @wraps(f)
+    def deco(*a, **kw):
+        if "user_id" not in session:
+            return redirect(url_for("login_page"))
+        return f(*a, **kw)
+    return deco
+
+def get_current_user() -> Optional[Dict]:
+    uid = session.get("user_id")
+    if not uid: return None
+    row = get_db().execute(
+        "SELECT id,email,name,avatar_url,plan,pro_expires_at,referral_code FROM users WHERE id=?",
+        (uid,)
+    ).fetchone()
+    return dict(row) if row else None
+
+def user_medals(uid: int) -> List[Dict]:
+    rows = get_db().execute(
+        "SELECT tipo,mes,pomodoros FROM medals WHERE user_id=? ORDER BY mes DESC",
+        (uid,)
+    ).fetchall()
+    return [dict(r) for r in rows]
+
+def is_pro(user: Dict) -> bool:
+    if user.get("plan") == "pro":
+        exp = user.get("pro_expires_at")
+        if exp is None: return True  # PRO permanente
+        return datetime.fromisoformat(str(exp)) > datetime.now()
+    return False
+
+
+# ══════════════════════════════════════════════════════════════
+# GAMIFICACIÓN — MEDALLAS
+# ══════════════════════════════════════════════════════════════
+
+def verificar_y_otorgar_medallas() -> None:
+    today           = date.today()
+    primer_dia_mes  = today.replace(day=1)
+    ultimo_mes_date = primer_dia_mes - timedelta(days=1)
+    mes_str         = ultimo_mes_date.strftime("%Y-%m")
+    mes_inicio      = f"{mes_str}-01"
+    mes_fin         = ultimo_mes_date.isoformat()
+
+    db = get_db()
+    if db.execute("SELECT COUNT(*) FROM medals WHERE mes=?", (mes_str,)).fetchone()[0]:
+        return
+
+    top3 = db.execute("""
+        SELECT user_id, COUNT(*) as total
+        FROM sessions WHERE tipo='trabajo'
+          AND fecha >= ? AND fecha <= ?
+        GROUP BY user_id ORDER BY total DESC LIMIT 3
+    """, (mes_inicio, mes_fin + " 23:59:59")).fetchall()
+
+    tipos = ["gold", "silver", "bronze"]
+    for i, row in enumerate(top3):
+        db.execute("INSERT INTO medals (user_id,tipo,mes,pomodoros) VALUES (?,?,?,?)",
+                   (row["user_id"], tipos[i], mes_str, row["total"]))
+    if top3: db.commit()
+
+
+# ══════════════════════════════════════════════════════════════
+# REFERIDOS
+# ══════════════════════════════════════════════════════════════
+
+def procesar_referido_tras_pomodoro(user_id: int) -> None:
+    """
+    Comprueba si el usuario fue referido y ha completado 3 pomodoros.
+    Si es así, activa el bono PRO de 15 días para ambos.
+    """
+    db = get_db()
+    ref = db.execute(
+        "SELECT id, referrer_id, pro_granted FROM referrals "
+        "WHERE referred_id=? AND pro_granted=0", (user_id,)
+    ).fetchone()
+    if not ref: return
+
+    total_pom = db.execute(
+        "SELECT COUNT(*) FROM sessions WHERE user_id=? AND tipo='trabajo'",
+        (user_id,)
+    ).fetchone()[0]
+
+    if total_pom >= 3:
+        expira = (datetime.now() + timedelta(days=15)).isoformat()
+        for uid in (user_id, ref["referrer_id"]):
+            db.execute(
+                "UPDATE users SET plan='pro', pro_expires_at=? WHERE id=?",
+                (expira, uid)
+            )
+        db.execute(
+            "UPDATE referrals SET pro_granted=1, activated_at=? WHERE id=?",
+            (datetime.now().isoformat(), ref["id"])
+        )
+        db.commit()
+
+
+# ══════════════════════════════════════════════════════════════
 # ESTADÍSTICAS
-# ─────────────────────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════
 
-def calcular_stats(sesiones: List[Dict[str, Any]]) -> Dict[str, Any]:
-    if not sesiones:
-        return {
-            "total_pomodoros": 0,
-            "total_minutos": 0,
-            "por_categoria": {},
-            "por_dia": {},
-            "racha": 0,
-            "hoy": 0,
-            "semana": 0,
-        }
+def calcular_stats(user_id: int) -> Dict:
+    rows = get_db().execute(
+        "SELECT fecha,categoria,duracion FROM sessions WHERE user_id=? AND tipo='trabajo'",
+        (user_id,)
+    ).fetchall()
+    if not rows:
+        return {"total_pomodoros":0,"total_minutos":0,
+                "por_categoria":{},"por_dia":{},"racha":0,"hoy":0}
 
-    total_pomodoros = sum(1 for s in sesiones if s.get("tipo") == "trabajo")
-    total_minutos   = sum(s.get("duracion", 0) for s in sesiones if s.get("tipo") == "trabajo")
+    total_pomodoros = len(rows)
+    total_minutos   = sum(r["duracion"] for r in rows)
+    por_cat: Dict[str,int] = {}
+    por_dia: Dict[str,int] = {}
 
-    por_categoria: Dict[str, int] = {}
-    for s in sesiones:
-        if s.get("tipo") == "trabajo":
-            cat = s.get("categoria", "Sin categoría")
-            por_categoria[cat] = por_categoria.get(cat, 0) + s.get("duracion", 0)
-
-    por_dia: Dict[str, int] = {}
-    for s in sesiones:
-        if s.get("tipo") == "trabajo":
-            dia = s.get("fecha", "")[:10]
-            if dia:
-                por_dia[dia] = por_dia.get(dia, 0) + 1
+    for r in rows:
+        cat = r["categoria"] or "General"
+        por_cat[cat] = por_cat.get(cat,0) + r["duracion"]
+        dia = str(r["fecha"])[:10]
+        por_dia[dia] = por_dia.get(dia,0) + 1
 
     hoy_str  = date.today().isoformat()
-    hoy      = por_dia.get(hoy_str, 0)
-    semana   = sum(v for k, v in por_dia.items() if k >= hoy_str[:8] + "01")
+    ultimos7 = {(date.today()-timedelta(days=i)).isoformat():0 for i in range(6,-1,-1)}
+    for d,n in por_dia.items():
+        if d in ultimos7: ultimos7[d] = n
 
-    dias_ordenados = sorted(por_dia.keys(), reverse=True)
     racha = 0
     check = date.today()
-    for dia in dias_ordenados:
-        if dia == check.isoformat():
-            racha += 1
-            check = date.fromordinal(check.toordinal() - 1)
-        else:
-            break
+    for _ in range(365):
+        if por_dia.get(check.isoformat(),0)>0:
+            racha+=1; check=check-timedelta(days=1)
+        else: break
 
-    ultimos_7 = {}
-    from datetime import timedelta
-    for i in range(6, -1, -1):
-        d = (date.today() - timedelta(days=i)).isoformat()
-        ultimos_7[d] = por_dia.get(d, 0)
-
-    return {
-        "total_pomodoros": total_pomodoros,
-        "total_minutos":   total_minutos,
-        "por_categoria":   por_categoria,
-        "por_dia":         ultimos_7,
-        "racha":           racha,
-        "hoy":             hoy,
-        "semana":          semana,
-    }
+    return {"total_pomodoros":total_pomodoros,"total_minutos":total_minutos,
+            "por_categoria":por_cat,"por_dia":ultimos7,
+            "racha":racha,"hoy":por_dia.get(hoy_str,0)}
 
 
-# ─────────────────────────────────────────────────────────────
-# RUTAS
-# ─────────────────────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════
+# RUTAS — PÚBLICAS
+# ══════════════════════════════════════════════════════════════
 
 @app.route("/")
-def index() -> Any:
-    return render_template("index.html")
+def landing():
+    """Landing page pública. Si el usuario está logueado, va directo a la app."""
+    if "user_id" in session:
+        return redirect(url_for("app_page"))
+    return render_template("landing.html", google_enabled=GOOGLE_ENABLED)
+
+@app.route("/privacy")
+def privacy():
+    return render_template("privacy.html")
+
+@app.route("/terms")
+def terms():
+    return render_template("terms.html")
+
+@app.route("/ref/<code>")
+def referral_link(code: str):
+    """Guarda el código de referido en sesión antes de redirigir al registro."""
+    session["referral_code"] = code[:20]
+    return redirect(url_for("register_page"))
 
 
+# ══════════════════════════════════════════════════════════════
+# RUTAS — AUTH
+# ══════════════════════════════════════════════════════════════
+
+@app.route("/login", methods=["GET"])
+def login_page():
+    if "user_id" in session: return redirect(url_for("app_page"))
+    return render_template("login.html", google_enabled=GOOGLE_ENABLED)
+
+@app.route("/login", methods=["POST"])
+def login_post():
+    email    = (request.form.get("email") or "").strip().lower()[:254]
+    password = request.form.get("password") or ""
+    if not email or not password:
+        return render_template("login.html", error="Completa todos los campos.",
+                               google_enabled=GOOGLE_ENABLED)
+    row = get_db().execute(
+        "SELECT id,password_hash FROM users WHERE email=?",(email,)
+    ).fetchone()
+    if not row or not row["password_hash"] or \
+       not check_password_hash(row["password_hash"], password):
+        return render_template("login.html", error="Email o contraseña incorrectos.",
+                               google_enabled=GOOGLE_ENABLED)
+    session.permanent = True
+    session["user_id"] = row["id"]
+    return redirect(url_for("app_page"))
+
+@app.route("/register", methods=["GET"])
+def register_page():
+    if "user_id" in session: return redirect(url_for("app_page"))
+    return render_template("register.html", google_enabled=GOOGLE_ENABLED)
+
+@app.route("/register", methods=["POST"])
+def register_post():
+    name      = (request.form.get("name") or "").strip()[:80]
+    email     = (request.form.get("email") or "").strip().lower()[:254]
+    password  = request.form.get("password") or ""
+    password2 = request.form.get("password2") or ""
+    if not name or not email or not password:
+        return render_template("register.html", error="Completa todos los campos.",
+                               google_enabled=GOOGLE_ENABLED)
+    if password2 and password != password2:
+        return render_template("register.html", error="Las contraseñas no coinciden.",
+                               google_enabled=GOOGLE_ENABLED)
+    if len(password) < 6:
+        return render_template("register.html",
+            error="Contraseña mínimo 6 caracteres.", google_enabled=GOOGLE_ENABLED)
+    if "@" not in email:
+        return render_template("register.html", error="Email no válido.",
+                               google_enabled=GOOGLE_ENABLED)
+    db = get_db()
+    if db.execute("SELECT id FROM users WHERE email=?",(email,)).fetchone():
+        return render_template("register.html",
+            error="Ya existe una cuenta con ese email.", google_enabled=GOOGLE_ENABLED)
+
+    referral_code = secrets.token_urlsafe(8)
+    db.execute(
+        "INSERT INTO users (email,password_hash,name,referral_code) VALUES (?,?,?,?)",
+        (email, generate_password_hash(password, method="pbkdf2:sha256"),
+         name, referral_code)
+    )
+    db.commit()
+    uid = db.execute("SELECT id FROM users WHERE email=?",(email,)).fetchone()["id"]
+
+    # Registrar referido si venía de un enlace
+    ref_code = session.pop("referral_code", None)
+    if ref_code:
+        referrer = db.execute(
+            "SELECT id FROM users WHERE referral_code=?", (ref_code,)
+        ).fetchone()
+        if referrer and referrer["id"] != uid:
+            db.execute(
+                "INSERT INTO referrals (referrer_id, referred_id) VALUES (?,?)",
+                (referrer["id"], uid)
+            )
+            db.commit()
+
+    session.permanent = True
+    session["user_id"] = uid
+    return redirect(url_for("app_page"))
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("landing"))
+
+@app.route("/auth/google")
+def google_auth():
+    if not GOOGLE_ENABLED: return redirect(url_for("login_page"))
+    state = secrets.token_urlsafe(16)
+    session["oauth_state"] = state
+    params = {"client_id":GOOGLE_CLIENT_ID,"redirect_uri":GOOGLE_REDIRECT_URI,
+              "response_type":"code","scope":"openid email profile",
+              "state":state,"access_type":"online"}
+    return redirect(f"{GOOGLE_AUTH_URL}?{urlencode(params)}")
+
+@app.route("/auth/google/callback")
+def google_callback():
+    if not GOOGLE_ENABLED: return redirect(url_for("login_page"))
+    if request.args.get("state") != session.pop("oauth_state",None):
+        return redirect(url_for("login_page"))
+    code = request.args.get("code")
+    if not code: return redirect(url_for("login_page"))
+    try:
+        tokens = requests.post(GOOGLE_TOKEN_URL, data={
+            "code":code,"client_id":GOOGLE_CLIENT_ID,
+            "client_secret":GOOGLE_CLIENT_SECRET,
+            "redirect_uri":GOOGLE_REDIRECT_URI,"grant_type":"authorization_code"
+        }, timeout=10).json()
+        access_token = tokens.get("access_token")
+        if not access_token: return redirect(url_for("login_page"))
+        info = requests.get(GOOGLE_USERINFO_URL,
+            headers={"Authorization":f"Bearer {access_token}"}, timeout=10).json()
+        google_id  = info.get("sub"); email = (info.get("email") or "").lower()
+        name       = info.get("name") or email
+        avatar_url = info.get("picture") or ""
+        if not google_id or not email: return redirect(url_for("login_page"))
+        db  = get_db()
+        row = db.execute(
+            "SELECT id FROM users WHERE google_id=? OR email=?",(google_id,email)
+        ).fetchone()
+        if row:
+            db.execute("UPDATE users SET google_id=?,avatar_url=? WHERE id=?",
+                       (google_id,avatar_url,row["id"])); db.commit(); uid=row["id"]
+        else:
+            code_ref = secrets.token_urlsafe(8)
+            db.execute(
+                "INSERT INTO users (email,google_id,name,avatar_url,referral_code) VALUES(?,?,?,?,?)",
+                (email,google_id,name,avatar_url,code_ref)
+            ); db.commit()
+            uid = db.execute("SELECT last_insert_rowid()").fetchone()[0]
+        session.permanent = True
+        session["user_id"] = uid
+        return redirect(url_for("app_page"))
+    except Exception: return redirect(url_for("login_page"))
+
+
+# ══════════════════════════════════════════════════════════════
+# RUTAS — APP PRINCIPAL
+# ══════════════════════════════════════════════════════════════
+
+@app.route("/app")
+@login_required
+def app_page():
+    user   = get_current_user()
+    medals = user_medals(session["user_id"]) if user else []
+    return render_template("index.html", user=user, medals=medals,
+                           google_enabled=GOOGLE_ENABLED,
+                           is_pro=is_pro(user) if user else False)
+
+@app.route("/api/me")
+@login_required
+def me():
+    user   = get_current_user()
+    medals = user_medals(session["user_id"])
+    if user:
+        user["medals"] = medals
+        user["is_pro"] = is_pro(user)
+    return jsonify(user)
+
+# ── Sesiones ──────────────────────────────────────────────────
 @app.route("/api/sessions", methods=["GET"])
-def get_sessions() -> Any:
-    sesiones = cargar_sesiones()
-    return jsonify(sesiones[-50:])  # Últimas 50
-
+@login_required
+def get_sessions():
+    uid  = session["user_id"]
+    rows = get_db().execute(
+        "SELECT id,fecha,tipo,categoria,duracion,nota FROM sessions "
+        "WHERE user_id=? ORDER BY fecha DESC LIMIT 50", (uid,)
+    ).fetchall()
+    return jsonify([dict(r) for r in rows])
 
 @app.route("/api/sessions", methods=["POST"])
-def save_session() -> Any:
+@login_required
+def save_session():
     data = request.get_json()
-    if not data:
-        return jsonify({"error": "Sin datos"}), 400
-    sesiones = cargar_sesiones()
-    sesiones.append({
-        "id":        len(sesiones) + 1,
-        "fecha":     datetime.now().isoformat(),
-        "tipo":      data.get("tipo", "trabajo"),
-        "categoria": data.get("categoria", "General"),
-        "duracion":  data.get("duracion", 25),
-        "nota":      data.get("nota", ""),
+    if not data: return jsonify({"error":"Sin datos"}), 400
+    uid  = session["user_id"]
+    tipo = data.get("tipo","trabajo")
+    if tipo not in ("trabajo","descanso-corto","descanso-largo"): tipo = "trabajo"
+    dur  = int(data.get("duracion",25))
+    if not (1 <= dur <= 120): dur = 25
+    db = get_db()
+    db.execute(
+        "INSERT INTO sessions (user_id,fecha,tipo,categoria,duracion,nota) VALUES(?,?,?,?,?,?)",
+        (uid, datetime.now().isoformat(), tipo,
+         str(data.get("categoria","General"))[:60], dur,
+         str(data.get("nota",""))[:200])
+    )
+    db.commit()
+    # Comprobar referidos
+    if tipo == "trabajo":
+        procesar_referido_tras_pomodoro(uid)
+    return jsonify({"ok":True})
+
+@app.route("/api/stats")
+@login_required
+def stats():
+    return jsonify(calcular_stats(session["user_id"]))
+
+@app.route("/api/heatmap")
+@login_required
+def heatmap():
+    uid    = session["user_id"]
+    inicio = (date.today() - timedelta(days=364)).isoformat()
+    rows   = get_db().execute(
+        "SELECT DATE(fecha) as dia, COUNT(*) as total "
+        "FROM sessions WHERE user_id=? AND tipo='trabajo' AND fecha>=? "
+        "GROUP BY dia", (uid, inicio)
+    ).fetchall()
+    return jsonify({r["dia"]: r["total"] for r in rows})
+
+# ── Categorías ────────────────────────────────────────────────
+@app.route("/api/categories", methods=["GET"])
+@login_required
+def get_categories():
+    uid  = session["user_id"]
+    rows = get_db().execute(
+        "SELECT id,nombre,color,emoji FROM categories WHERE user_id=? ORDER BY id",
+        (uid,)
+    ).fetchall()
+    return jsonify([dict(r) for r in rows])
+
+@app.route("/api/categories", methods=["POST"])
+@login_required
+def create_category():
+    data   = request.get_json() or {}
+    uid    = session["user_id"]
+    nombre = str(data.get("nombre","")).strip()[:50]
+    color  = str(data.get("color","#B8733A"))[:7]
+    emoji  = str(data.get("emoji","📌"))[:4]
+    if not nombre: return jsonify({"error":"Nombre requerido"}), 400
+    db = get_db()
+    db.execute("INSERT INTO categories (user_id,nombre,color,emoji) VALUES(?,?,?,?)",
+               (uid, nombre, color, emoji))
+    db.commit()
+    cid = db.execute("SELECT last_insert_rowid()").fetchone()[0]
+    return jsonify({"id":cid,"nombre":nombre,"color":color,"emoji":emoji})
+
+@app.route("/api/categories/<int:cid>", methods=["DELETE"])
+@login_required
+def delete_category(cid: int):
+    uid = session["user_id"]
+    db  = get_db()
+    db.execute("DELETE FROM categories WHERE id=? AND user_id=?", (cid, uid))
+    db.commit()
+    return jsonify({"ok":True})
+
+# ── Leaderboard ───────────────────────────────────────────────
+@app.route("/api/leaderboard")
+@login_required
+def leaderboard():
+    verificar_y_otorgar_medallas()
+    hoy     = date.today()
+    mes_ini = hoy.replace(day=1).isoformat()
+    mes_fin = hoy.isoformat()
+    db      = get_db()
+    rows    = db.execute("""
+        SELECT u.id, u.name, u.avatar_url,
+               COUNT(s.id) as pomodoros,
+               SUM(s.duracion) as minutos
+        FROM users u
+        LEFT JOIN sessions s ON s.user_id = u.id
+          AND s.tipo='trabajo'
+          AND DATE(s.fecha) >= ? AND DATE(s.fecha) <= ?
+        GROUP BY u.id ORDER BY pomodoros DESC LIMIT 20
+    """, (mes_ini, mes_fin)).fetchall()
+
+    result = []
+    for i, r in enumerate(rows):
+        uid      = r["id"]
+        medallas = db.execute(
+            "SELECT tipo FROM medals WHERE user_id=? ORDER BY mes DESC LIMIT 3", (uid,)
+        ).fetchall()
+        result.append({
+            "rank":      i + 1,
+            "user_id":   uid,
+            "name":      r["name"],
+            "avatar_url":r["avatar_url"],
+            "pomodoros": r["pomodoros"] or 0,
+            "minutos":   r["minutos"]   or 0,
+            "medals":    [m["tipo"] for m in medallas],
+            "es_yo":     uid == session["user_id"],
+        })
+    return jsonify(result)
+
+@app.route("/api/medals")
+@login_required
+def get_medals():
+    return jsonify(user_medals(session["user_id"]))
+
+# ── Referidos ─────────────────────────────────────────────────
+@app.route("/api/referral")
+@login_required
+def referral_info():
+    user = get_current_user()
+    if not user: return jsonify({}), 401
+    db      = get_db()
+    total   = db.execute(
+        "SELECT COUNT(*) FROM referrals WHERE referrer_id=?",
+        (user["id"],)
+    ).fetchone()[0]
+    activos = db.execute(
+        "SELECT COUNT(*) FROM referrals WHERE referrer_id=? AND pro_granted=1",
+        (user["id"],)
+    ).fetchone()[0]
+    base_url = request.host_url.rstrip("/")
+    return jsonify({
+        "code":    user["referral_code"],
+        "link":    f"{base_url}/ref/{user['referral_code']}",
+        "total":   total,
+        "activos": activos,
+        "is_pro":  is_pro(user),
     })
-    guardar_sesiones(sesiones)
-    return jsonify({"ok": True})
 
-
-@app.route("/api/notify", methods=["POST"])
-def notify() -> Any:
+# ── Bug report ────────────────────────────────────────────────
+@app.route("/api/bug-report", methods=["POST"])
+@login_required
+def bug_report():
     data = request.get_json() or {}
-    notificar(data.get("titulo", "Pomodoro"), data.get("mensaje", ""))
-    return jsonify({"ok": True})
+    desc = str(data.get("descripcion","")).strip()[:1000]
+    if not desc: return jsonify({"error":"Descripción requerida"}), 400
+    uid = session.get("user_id")
+    db  = get_db()
+    db.execute("INSERT INTO bug_reports (user_id,descripcion) VALUES(?,?)", (uid, desc))
+    db.commit()
+    return jsonify({"ok":True})
+
+# ── Notificación macOS ────────────────────────────────────────
+@app.route("/api/notify", methods=["POST"])
+@login_required
+def notify():
+    data   = request.get_json() or {}
+    titulo = str(data.get("titulo","Focumo"))[:100]
+    msg    = str(data.get("mensaje",""))[:200]
+    script = f'display notification "{msg}" with title "{titulo}"'
+    try: subprocess.run(["osascript","-e",script], check=False, timeout=5)
+    except Exception: pass
+    return jsonify({"ok":True})
+
+# ── AI Chat Widget ────────────────────────────────────────────
+@app.route("/api/chat", methods=["POST"])
+@login_required
+def chat():
+    """
+    Endpoint del asistente IA. Por ahora responde con mensajes
+    predefinidos. Listo para conectar a OpenAI/Claude API.
+    """
+    data    = request.get_json() or {}
+    message = str(data.get("message","")).strip()[:500]
+    uid     = session["user_id"]
+    if not message: return jsonify({"error":"Mensaje vacío"}), 400
+
+    # Guardar mensaje del usuario
+    db = get_db()
+    db.execute("INSERT INTO chat_messages (user_id,role,message) VALUES(?,?,?)",
+               (uid, "user", message))
+
+    # Respuesta placeholder (conectar API IA aquí)
+    msg_lower = message.lower()
+    if any(w in msg_lower for w in ["bug","error","fallo","problema","no funciona"]):
+        response = ("Gracias por reportar el problema. Por favor, describe los pasos "
+                    "exactos para reproducirlo y te ayudamos lo antes posible. "
+                    "También puedes usar el botón 🐛 en el menú de usuario.")
+    elif any(w in msg_lower for w in ["pro","premium","precio","plan"]):
+        response = ("Focumo PRO incluye temas de color personalizados, sonidos exclusivos, "
+                    "exportación avanzada de stats y 0 anuncios. ¡Próximamente! "
+                    "También puedes conseguirlo gratis invitando a 1 amigo.")
+    elif any(w in msg_lower for w in ["libro","kdp","productividad","recurso"]):
+        response = ("Nuestros libros sobre productividad y el método Pomodoro están disponibles "
+                    "en Amazon KDP. ¡Busca 'Focumo Productividad' próximamente!")
+    elif any(w in msg_lower for w in ["pomodoro","método","técnica","funciona"]):
+        response = ("El método Pomodoro divide tu trabajo en bloques de 25 minutos "
+                    "con descansos cortos. Estudios demuestran que mejora el foco un 40% "
+                    "y reduce la procrastinación. ¡Tú ya lo estás usando! 🍅")
+    elif any(w in msg_lower for w in ["hola","buenas","hey","hi"]):
+        response = "¡Hola! Soy el asistente de Focumo. ¿En qué puedo ayudarte hoy? 🎯"
+    else:
+        response = ("Entendido. Nuestro equipo revisará tu consulta. "
+                    "Para soporte urgente escríbenos a hello@focumo.app")
+
+    db.execute("INSERT INTO chat_messages (user_id,role,message) VALUES(?,?,?)",
+               (uid, "assistant", response))
+    db.commit()
+    return jsonify({"response": response})
+
+@app.route("/api/chat/history")
+@login_required
+def chat_history():
+    uid  = session["user_id"]
+    rows = get_db().execute(
+        "SELECT role,message,created_at FROM chat_messages "
+        "WHERE user_id=? ORDER BY created_at DESC LIMIT 20",
+        (uid,)
+    ).fetchall()
+    return jsonify([dict(r) for r in reversed(rows)])
 
 
-@app.route("/api/stats", methods=["GET"])
-def stats() -> Any:
-    sesiones = cargar_sesiones()
-    return jsonify(calcular_stats(sesiones))
-
+# ══════════════════════════════════════════════════════════════
+# MAIN
+# ══════════════════════════════════════════════════════════════
 
 if __name__ == "__main__":
-    print("\n🍅 Pomodoro Pro arrancando...")
-    print("   Abre tu navegador en: http://localhost:5050\n")
-    app.run(debug=False, port=5050)
+    init_db()
+    print("\n🎯 Focumo v1.0 — http://localhost:5050\n")
+    app.run(debug=False, port=5050, host="0.0.0.0")
