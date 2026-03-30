@@ -6,6 +6,12 @@
   <title>Focumo PRO — Checkout</title>
   <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
   <link rel="stylesheet" href="/static/style.css">
+  {% if stripe_public_key %}
+  <script src="https://js.stripe.com/v3/"></script>
+  {% endif %}
+  {% if paypal_client_id %}
+  <script src="https://www.paypal.com/sdk/js?client-id={{ paypal_client_id }}&currency=EUR&intent=capture"></script>
+  {% endif %}
   <style>
     .checkout-body {
       min-height: 100vh;
@@ -325,38 +331,29 @@
 
       <div class="pay-methods">
 
-        <!-- Stripe (tarjeta / Google Pay nativo) -->
-        {% if stripe_link %}
-        <a href="{{ stripe_link }}" class="pay-btn pay-btn-stripe">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/></svg>
-          Pagar con Stripe · 4,99€
-        </a>
-        {% else %}
-        <button onclick="mockPay('stripe')" class="pay-btn pay-btn-stripe">
+        <!-- Stripe — tarjeta / Google Pay / Apple Pay nativo -->
+        <button id="btn-stripe-checkout" onclick="pagarConStripe()" class="pay-btn pay-btn-stripe">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/></svg>
           Pagar con tarjeta · 4,99€
-        </button>
-        {% endif %}
-
-        <!-- Google Pay -->
-        <button onclick="mockPay('google')" class="pay-btn pay-btn-google">
-          <svg width="20" height="20" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-          Google Pay
         </button>
 
         <div class="pay-divider">o</div>
 
-        <!-- PayPal -->
-        <button onclick="mockPay('paypal')" class="pay-btn pay-btn-paypal">
+        <!-- PayPal Smart Buttons (se renderizan automáticamente si SDK cargado) -->
+        {% if paypal_client_id %}
+        <div id="paypal-btn-container" style="min-height:48px"></div>
+        {% else %}
+        <button onclick="pagarMock('paypal')" class="pay-btn pay-btn-paypal">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="#F5BE00"><path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.288 2.652.876 4.402l-.003.016-.43 2.748c-.858 5.461-4.287 7.346-8.57 7.346H9.37a.774.774 0 0 0-.763.648l-1.056 6.696-.013.085a.064.064 0 0 1-.063.061h-.399z"/></svg>
           Pagar con PayPal
         </button>
+        {% endif %}
 
-        <!-- Apple Pay -->
+        <!-- Apple Pay — próximamente -->
         <div style="position:relative">
           <button class="pay-btn pay-btn-apple" disabled>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
-            Apple Pay — Próximamente para app iOS
+            Apple Pay — Próximamente iOS
           </button>
           <span class="badge-soon">PRÓX. iOS</span>
         </div>
@@ -382,13 +379,65 @@
   </div>
 
   <script>
-    function mockPay(method) {
-      document.getElementById('proc-overlay').classList.add('active');
-      // Simula 2.5s de procesamiento → activa PRO
-      setTimeout(() => {
-        window.location.href = '/checkout/mock-success';
-      }, 2500);
+    const STRIPE_PUBLIC_KEY = "{{ stripe_public_key }}";
+
+    // ── Stripe Checkout Session ──────────────────────────────
+    async function pagarConStripe() {
+      const btn = document.getElementById('btn-stripe-checkout');
+      btn.disabled = true;
+      btn.textContent = 'Redirigiendo…';
+      try {
+        const r = await fetch('/create-checkout-session', { method: 'POST' });
+        const d = await r.json();
+        if (d.url) {
+          document.getElementById('proc-overlay').classList.add('active');
+          window.location.href = d.url;
+        } else {
+          btn.disabled = false;
+          btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/></svg> Pagar con tarjeta · 4,99€';
+        }
+      } catch(e) {
+        console.error('[stripe]', e);
+        pagarMock('stripe');
+      }
     }
+
+    // ── Mock fallback (dev sin claves) ────────────────────────
+    function pagarMock(method) {
+      document.getElementById('proc-overlay').classList.add('active');
+      setTimeout(() => { window.location.href = '/checkout/mock-success'; }, 2500);
+    }
+
+    // ── PayPal Smart Buttons ──────────────────────────────────
+    {% if paypal_client_id %}
+    document.addEventListener('DOMContentLoaded', function() {
+      if (!window.paypal) return;
+      paypal.Buttons({
+        style: { shape:'rect', color:'gold', layout:'vertical', label:'pay' },
+        createOrder: async function() {
+          const r = await fetch('/paypal/create-order', { method:'POST' });
+          const d = await r.json();
+          return d.order_id;
+        },
+        onApprove: async function(data) {
+          document.getElementById('proc-overlay').classList.add('active');
+          const r = await fetch('/paypal/capture', {
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ order_id: data.orderID })
+          });
+          const d = await r.json();
+          if (d.ok) {
+            window.location.href = '/app?pro=activated';
+          } else {
+            document.getElementById('proc-overlay').classList.remove('active');
+            alert('Error al completar el pago. Inténtalo de nuevo.');
+          }
+        },
+        onError: function(err) { console.error('[paypal]', err); }
+      }).render('#paypal-btn-container');
+    });
+    {% endif %}
   </script>
 
 </body>

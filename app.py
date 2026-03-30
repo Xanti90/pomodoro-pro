@@ -44,6 +44,20 @@ GOOGLE_REDIRECT_URI  = os.environ.get("GOOGLE_REDIRECT_URI",
                         "http://localhost:5050/auth/google/callback")
 GOOGLE_ENABLED       = bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET)
 
+# ─── STRIPE ────────────────────────────────────────────────────
+STRIPE_PUBLIC_KEY     = os.environ.get("STRIPE_PUBLIC_KEY",     "")
+STRIPE_SECRET_KEY     = os.environ.get("STRIPE_SECRET_KEY",     "")
+STRIPE_PRICE_ID       = os.environ.get("STRIPE_PRICE_ID",       "")
+STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
+
+# ─── PAYPAL ────────────────────────────────────────────────────
+PAYPAL_CLIENT_ID      = os.environ.get("PAYPAL_CLIENT_ID",      "")
+PAYPAL_CLIENT_SECRET  = os.environ.get("PAYPAL_CLIENT_SECRET",  "")
+PAYPAL_MODE           = os.environ.get("PAYPAL_MODE",           "sandbox")  # "sandbox" | "live"
+
+# ─── DONACIONES ────────────────────────────────────────────────
+COFFEE_URL = os.environ.get("COFFEE_URL", "https://ko-fi.com/focumo")
+
 GOOGLE_AUTH_URL     = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URL    = "https://oauth2.googleapis.com/token"
 GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo"
@@ -70,11 +84,13 @@ def security_headers(response):
     response.headers["Permissions-Policy"]        = "geolocation=(), microphone=(), camera=()"
     response.headers["Content-Security-Policy"]   = (
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' cdn.jsdelivr.net cdn.tailwindcss.com cdnjs.cloudflare.com; "
+        "script-src 'self' 'unsafe-inline' cdn.jsdelivr.net cdn.tailwindcss.com cdnjs.cloudflare.com "
+        "js.stripe.com www.paypal.com www.paypalobjects.com; "
         "style-src 'self' 'unsafe-inline' cdn.tailwindcss.com fonts.googleapis.com cdnjs.cloudflare.com; "
         "font-src 'self' fonts.gstatic.com; "
-        "img-src 'self' data: *.googleusercontent.com lh3.googleusercontent.com; "
-        "connect-src 'self' wttr.in; "
+        "img-src 'self' data: *.googleusercontent.com lh3.googleusercontent.com www.paypalobjects.com; "
+        "connect-src 'self' wttr.in api.stripe.com www.paypal.com www.sandbox.paypal.com; "
+        "frame-src js.stripe.com www.paypal.com www.sandbox.paypal.com; "
         "frame-ancestors 'none';"
     )
     return response
@@ -569,7 +585,10 @@ def app_page():
     medals = user_medals(session["user_id"]) if user else []
     return render_template("index.html", user=user, medals=medals,
                            google_enabled=GOOGLE_ENABLED,
-                           is_pro=is_pro(user) if user else False)
+                           is_pro=is_pro(user) if user else False,
+                           stripe_public_key=STRIPE_PUBLIC_KEY,
+                           paypal_client_id=PAYPAL_CLIENT_ID,
+                           coffee_url=COFFEE_URL)
 
 @app.route("/api/me")
 @login_required
@@ -982,7 +1001,9 @@ def checkout_page():
         return redirect(STRIPE_PAYMENT_LINK)
     return render_template("checkout.html", user=user,
                            google_enabled=GOOGLE_ENABLED,
-                           stripe_link=STRIPE_PAYMENT_LINK)
+                           stripe_link=STRIPE_PAYMENT_LINK,
+                           stripe_public_key=STRIPE_PUBLIC_KEY,
+                           paypal_client_id=PAYPAL_CLIENT_ID)
 
 
 @app.route("/checkout/mock-success")
@@ -1038,6 +1059,126 @@ def stripe_webhook():
         print(f"[webhook] Error: {e}")
 
     return jsonify({"ok": True})
+
+
+@app.route("/create-checkout-session", methods=["POST"])
+@login_required
+def create_checkout_session():
+    """
+    Crea una sesión de Stripe Checkout real.
+    Si STRIPE_SECRET_KEY no está configurado, redirige al mock.
+    """
+    user = get_current_user()
+    if is_pro(user):
+        return jsonify({"url": url_for("app_page", _external=True)}), 200
+
+    if not STRIPE_SECRET_KEY or not STRIPE_PRICE_ID:
+        return jsonify({"url": url_for("checkout_mock_success", _external=True)}), 200
+
+    try:
+        import stripe as stripe_lib
+        stripe_lib.api_key = STRIPE_SECRET_KEY
+        cs = stripe_lib.checkout.Session.create(
+            mode="payment",
+            line_items=[{"price": STRIPE_PRICE_ID, "quantity": 1}],
+            customer_email=user["email"],
+            success_url=url_for("checkout_mock_success", _external=True),
+            cancel_url=url_for("checkout_page", _external=True),
+            metadata={"user_id": str(user["id"])},
+        )
+        return jsonify({"url": cs.url}), 200
+    except Exception as e:
+        print(f"[stripe session] Error: {e}")
+        return jsonify({"url": url_for("checkout_mock_success", _external=True)}), 200
+
+
+@app.route("/paypal/create-order", methods=["POST"])
+@login_required
+def paypal_create_order():
+    """Crea una orden de PayPal. Fallback a mock si no hay credenciales."""
+    if not PAYPAL_CLIENT_ID or not PAYPAL_CLIENT_SECRET:
+        return jsonify({"order_id": "MOCK-" + secrets.token_hex(8)}), 200
+    try:
+        import base64
+        base_url = ("https://api-m.sandbox.paypal.com"
+                    if PAYPAL_MODE == "sandbox" else "https://api-m.paypal.com")
+        creds = base64.b64encode(
+            f"{PAYPAL_CLIENT_ID}:{PAYPAL_CLIENT_SECRET}".encode()
+        ).decode()
+        token_r = requests.post(
+            f"{base_url}/v1/oauth2/token",
+            headers={"Authorization": f"Basic {creds}",
+                     "Content-Type": "application/x-www-form-urlencoded"},
+            data="grant_type=client_credentials", timeout=10
+        )
+        access_token = token_r.json()["access_token"]
+        order_r = requests.post(
+            f"{base_url}/v2/checkout/orders",
+            headers={"Authorization": f"Bearer {access_token}",
+                     "Content-Type": "application/json"},
+            json={
+                "intent": "CAPTURE",
+                "purchase_units": [{
+                    "amount": {"currency_code": "EUR", "value": "4.99"},
+                    "description": "Focumo PRO — Acceso de por vida"
+                }]
+            }, timeout=10
+        )
+        order = order_r.json()
+        return jsonify({"order_id": order["id"]}), 200
+    except Exception as e:
+        print(f"[paypal create-order] Error: {e}")
+        return jsonify({"error": "Error creando orden PayPal"}), 500
+
+
+@app.route("/paypal/capture", methods=["POST"])
+@login_required
+def paypal_capture():
+    """Captura y verifica un pago de PayPal. Activa PRO."""
+    data     = request.get_json() or {}
+    order_id = str(data.get("order_id", ""))[:64]
+    if not order_id:
+        return jsonify({"error": "order_id requerido"}), 400
+
+    uid = session["user_id"]
+
+    if not PAYPAL_CLIENT_SECRET or order_id.startswith("MOCK-"):
+        # Dev/demo: activar PRO sin verificación real
+        db = get_db()
+        db.execute("UPDATE users SET plan='pro', pro_expires_at=NULL WHERE id=?", (uid,))
+        db.commit()
+        return jsonify({"ok": True}), 200
+
+    try:
+        import base64
+        base_url = ("https://api-m.sandbox.paypal.com"
+                    if PAYPAL_MODE == "sandbox" else "https://api-m.paypal.com")
+        creds = base64.b64encode(
+            f"{PAYPAL_CLIENT_ID}:{PAYPAL_CLIENT_SECRET}".encode()
+        ).decode()
+        token_r = requests.post(
+            f"{base_url}/v1/oauth2/token",
+            headers={"Authorization": f"Basic {creds}",
+                     "Content-Type": "application/x-www-form-urlencoded"},
+            data="grant_type=client_credentials", timeout=10
+        )
+        access_token = token_r.json()["access_token"]
+        cap_r = requests.post(
+            f"{base_url}/v2/checkout/orders/{order_id}/capture",
+            headers={"Authorization": f"Bearer {access_token}",
+                     "Content-Type": "application/json"},
+            timeout=10
+        )
+        result = cap_r.json()
+        if result.get("status") in ("COMPLETED", "APPROVED"):
+            db = get_db()
+            db.execute("UPDATE users SET plan='pro', pro_expires_at=NULL WHERE id=?", (uid,))
+            db.commit()
+            return jsonify({"ok": True}), 200
+        return jsonify({"error": "Pago no completado", "status": result.get("status")}), 400
+    except Exception as e:
+        print(f"[paypal capture] Error: {e}")
+        return jsonify({"error": "Error procesando pago PayPal"}), 500
 
 
 # ══════════════════════════════════════════════════════════════

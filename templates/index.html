@@ -13,6 +13,9 @@
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  {% if paypal_client_id %}
+  <script src="https://www.paypal.com/sdk/js?client-id={{ paypal_client_id }}&currency=EUR&intent=capture" defer></script>
+  {% endif %}
 </head>
 <body>
 
@@ -91,17 +94,17 @@
 <svg width="0" height="0" style="position:absolute;overflow:hidden" aria-hidden="true">
   <defs>
     <linearGradient id="ringGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%"   stop-color="#F2C050"/>
-      <stop offset="50%"  stop-color="#D4924F"/>
-      <stop offset="100%" stop-color="#B8733A"/>
+      <stop offset="0%"   stop-color="#FBBF24"/>
+      <stop offset="50%"  stop-color="#FF7A42"/>
+      <stop offset="100%" stop-color="#FF5C1A"/>
     </linearGradient>
     <linearGradient id="ringGradientBreakS" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%"   stop-color="#A8D5AC"/>
-      <stop offset="100%" stop-color="#7A9E7E"/>
+      <stop offset="0%"   stop-color="#6EE7B7"/>
+      <stop offset="100%" stop-color="#22C55E"/>
     </linearGradient>
     <linearGradient id="ringGradientBreakL" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%"   stop-color="#A8C0D5"/>
-      <stop offset="100%" stop-color="#7A90A4"/>
+      <stop offset="0%"   stop-color="#BAE6FD"/>
+      <stop offset="100%" stop-color="#60A5FA"/>
     </linearGradient>
   </defs>
 </svg>
@@ -126,6 +129,24 @@
   </div>
 
   <div class="nav-right">
+    <!-- Theme toggle — Day / Night -->
+    <button class="theme-toggle" id="btn-theme" onclick="toggleTheme()" title="Cambiar tema">
+      <!-- Sun icon (shown in light mode) -->
+      <span class="icon-sun">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+          <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+        </svg>
+      </span>
+      <!-- Moon icon (shown in dark mode) -->
+      <span class="icon-moon">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+      </span>
+    </button>
     <button class="nav-icon-btn" id="btn-sonido" onclick="toggleSoundPanel()" title="Sonidos">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M18 8a6 6 0 0 1 0 8M14 3.23A8 8 0 0 1 14 20.77"/>
@@ -161,7 +182,7 @@
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;margin-right:5px"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
         Reportar bug
       </button>
-      <a href="https://ko-fi.com/focumo" target="_blank" class="dropdown-item">
+      <a href="{{ coffee_url }}" target="_blank" rel="noopener" class="dropdown-item">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;margin-right:5px"><path d="M18 8h1a4 4 0 0 1 0 8h-1M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8zM6 1v3M10 1v3M14 1v3"/></svg>
         Invítame a un café
       </a>
@@ -575,27 +596,30 @@
         Salas de estudio privadas
       </li>
     </ul>
-    <!-- Stripe / Google Pay — botón principal -->
-    <a href="/checkout"
+    <!-- Stripe — botón principal (llama al endpoint real) -->
+    <button onclick="irACheckoutStripe()"
        style="display:flex;align-items:center;justify-content:center;gap:10px;
               width:100%;background:linear-gradient(135deg,var(--primary),var(--primary-light));
               color:#fff;border:none;border-radius:14px;padding:14px;font-size:1rem;font-weight:800;
-              cursor:pointer;letter-spacing:.01em;text-decoration:none;margin-bottom:10px;
+              cursor:pointer;letter-spacing:.01em;margin-bottom:10px;
               box-shadow:0 4px 20px var(--primary-glow)">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/></svg>
       Desbloquear PRO — 4,99€
-    </a>
+    </button>
 
-    <!-- PayPal secundario -->
-    <a href="/checkout?method=paypal"
+    <!-- PayPal Smart Buttons container (visible solo si PAYPAL_CLIENT_ID) -->
+    {% if paypal_client_id %}
+    <div id="paypal-btn-container-modal" style="margin-bottom:8px"></div>
+    {% else %}
+    <button onclick="window.location.href='/checkout'"
        style="display:flex;align-items:center;justify-content:center;gap:10px;
               width:100%;background:rgba(255,196,57,.12);
               color:#F5BE00;border:1.5px solid rgba(255,196,57,.35);border-radius:14px;
-              padding:11px;font-size:.88rem;font-weight:700;cursor:pointer;
-              text-decoration:none;margin-bottom:8px">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="#F5BE00"><path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.288 2.652.876 4.402l-.003.016v.016l-.43 2.748c-.858 5.461-4.287 7.346-8.57 7.346H9.37a.774.774 0 0 0-.763.648l-.005.03-1.056 6.696-.013.085-.004.028a.064.064 0 0 1-.063.061h-.39l.0-.0z"/></svg>
+              padding:11px;font-size:.88rem;font-weight:700;cursor:pointer;margin-bottom:8px">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="#F5BE00"><path d="M7.076 21.337H2.47a.641.641 0 0 1-.633-.74L4.944.901C5.026.382 5.474 0 5.998 0h7.46c2.57 0 4.578.543 5.69 1.81 1.01 1.15 1.288 2.652.876 4.402l-.003.016-.43 2.748c-.858 5.461-4.287 7.346-8.57 7.346H9.37a.774.774 0 0 0-.763.648l-1.056 6.696-.013.085a.064.064 0 0 1-.063.061h-.399z"/></svg>
       Pagar con PayPal
-    </a>
+    </button>
+    {% endif %}
 
     <!-- Apple Pay — disabled -->
     <div style="position:relative;opacity:.45;pointer-events:none;user-select:none;margin-bottom:10px">
@@ -617,12 +641,78 @@
 </div>
 
 <script>
+// ── Config vars (server-injected) ─────────────────────────
+const STRIPE_PUBLIC_KEY = "{{ stripe_public_key }}";
+const PAYPAL_CLIENT_ID  = "{{ paypal_client_id }}";
+
+// ── PRO Modal ─────────────────────────────────────────────
 function abrirModalPro() {
   document.getElementById('modal-pro').classList.remove('hidden');
 }
 function cerrarModalPro(e) {
   if (!e || e.target.id === 'modal-pro') {
     document.getElementById('modal-pro').classList.add('hidden');
+  }
+}
+
+// ── Checkout con Stripe Checkout Session ──────────────────
+async function irACheckoutStripe() {
+  try {
+    const r = await fetch('/create-checkout-session', { method: 'POST' });
+    const d = await r.json();
+    if (d.url) window.location.href = d.url;
+  } catch(e) {
+    window.location.href = '/checkout';
+  }
+}
+
+// ── PayPal Smart Buttons ──────────────────────────────────
+{% if paypal_client_id %}
+window.addEventListener('DOMContentLoaded', function() {
+  function _renderPayPal(containerId) {
+    if (!window.paypal || !document.getElementById(containerId)) return;
+    paypal.Buttons({
+      style: { shape:'rect', color:'gold', layout:'horizontal', label:'pay', height:42 },
+      createOrder: async function() {
+        const r = await fetch('/paypal/create-order', { method:'POST' });
+        const d = await r.json();
+        return d.order_id;
+      },
+      onApprove: async function(data) {
+        const r = await fetch('/paypal/capture', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ order_id: data.orderID })
+        });
+        const d = await r.json();
+        if (d.ok) window.location.href = '/app?pro=activated';
+        else alert('Error al procesar el pago PayPal. Inténtalo de nuevo.');
+      },
+      onError: function(err) { console.error('[paypal]', err); }
+    }).render('#' + containerId);
+  }
+  _renderPayPal('paypal-btn-container-modal');
+});
+{% endif %}
+
+// ── Theme Toggle (Day / Night) ────────────────────────────
+(function initTheme() {
+  const saved = localStorage.getItem('focumo-theme');
+  if (saved === 'light') document.documentElement.setAttribute('data-theme', 'light');
+})();
+
+function toggleTheme() {
+  const html  = document.documentElement;
+  const isLight = html.getAttribute('data-theme') === 'light';
+  const next  = isLight ? 'dark' : 'light';
+  html.setAttribute('data-theme', next === 'dark' ? '' : 'light');
+  localStorage.setItem('focumo-theme', next);
+  // GSAP bounce on button
+  if (typeof gsap !== 'undefined') {
+    gsap.fromTo('#btn-theme',
+      { scale: 0.78, rotate: isLight ? -30 : 30 },
+      { scale: 1,    rotate: 0, duration: 0.55, ease: 'elastic.out(1.4,0.5)' }
+    );
   }
 }
 </script>
