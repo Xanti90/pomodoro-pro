@@ -228,10 +228,15 @@ Email:      Resend.com o Mailgun (transaccional)
 - Requiere: Apple Developer Account ($99/año), entitlements en app, JWT con clave privada ES256
 - Prioridad: alta para conversión en iOS una vez lanzada la PWA
 
-### Monetización Web — Stripe + PayPal
-- Implementar Stripe y PayPal directamente en la web para eludir comisiones de App Stores
+### Monetización Web — Stripe + PayPal (FASE 2)
+- Stripe y PayPal en web para eludir comisiones App Store
 - Arquitectura: MCP de Stripe → webhook valida pago → actualiza `plan='pro'` en DB
-- PRO: pago único 4,99€ (no suscripción). Coronita en perfil como señal de estatus social.
+- PRO: pago único 4,99€. Coronita en perfil. Sin suscripción.
+- Apple Pay: disponible via Stripe Web (no requiere Apple Developer Account separada en web)
+
+### Login con Apple (FASE 2)
+- Sign in with Apple para fase nativa/PWA
+- Requiere Apple Developer Account ($99/año), JWT ES256
 
 ### Gamificación Fase 2 — Ascensos/Descensos Semanales
 - Cuenta atrás visible del cierre semanal de liga (domingo 23:59)

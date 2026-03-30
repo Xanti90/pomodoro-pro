@@ -33,7 +33,10 @@
 <!-- ══ MODAL BUG REPORT ═════════════════════════════════════ -->
 <div id="modal-bug" class="modal-overlay hidden" onclick="cerrarBugModal(event)">
   <div class="modal-card">
-    <h3 class="modal-title">🐛 Reportar un problema</h3>
+    <h3 class="modal-title" style="display:flex;align-items:center;gap:8px">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      Reportar un problema
+    </h3>
     <textarea id="bug-desc" class="bug-textarea" rows="4"
               placeholder="Describe el problema con el mayor detalle posible…"></textarea>
     <div class="modal-actions">
@@ -46,7 +49,10 @@
 <!-- ══ MODAL CATEGORÍA ══════════════════════════════════════ -->
 <div id="modal-cat" class="modal-overlay hidden" onclick="cerrarCatModal(event)">
   <div class="modal-card">
-    <h3 class="modal-title">➕ Nueva categoría</h3>
+    <h3 class="modal-title" style="display:flex;align-items:center;gap:8px">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      Nueva categoría
+    </h3>
     <div class="field-group">
       <label class="field-label">Emoji</label>
       <input type="text" id="cat-emoji" class="field-input" value="📌" maxlength="2">
@@ -76,12 +82,35 @@
   </div>
 </div>
 
+<!-- SVG gradient defs — referenced por ID desde el ring -->
+<svg width="0" height="0" style="position:absolute;overflow:hidden" aria-hidden="true">
+  <defs>
+    <linearGradient id="ringGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#F2C050"/>
+      <stop offset="50%"  stop-color="#D4924F"/>
+      <stop offset="100%" stop-color="#B8733A"/>
+    </linearGradient>
+    <linearGradient id="ringGradientBreakS" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#A8D5AC"/>
+      <stop offset="100%" stop-color="#7A9E7E"/>
+    </linearGradient>
+    <linearGradient id="ringGradientBreakL" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#A8C0D5"/>
+      <stop offset="100%" stop-color="#7A90A4"/>
+    </linearGradient>
+  </defs>
+</svg>
+
 <!-- ══ NAV ═══════════════════════════════════════════════════ -->
 <nav>
-  <div class="logo">
-    <img src="/static/favicon.svg" alt="Focumo" style="width:24px;height:24px;vertical-align:middle;margin-right:4px">
-    <span>Focumo</span>
-  </div>
+  <a href="/" class="logo" id="logo-link" style="text-decoration:none;cursor:pointer"
+     onmouseenter="this.querySelector('img').style.transform='scale(1.15) rotate(-4deg)'"
+     onmouseleave="this.querySelector('img').style.transform='scale(1) rotate(0deg)'"
+     onclick="logoClick(event)">
+    <img src="/static/favicon.svg" alt="Focumo"
+         style="width:28px;height:28px;vertical-align:middle;margin-right:6px;transition:transform .3s cubic-bezier(.34,1.56,.64,1)">
+    <span style="font-weight:800;letter-spacing:-.02em">Focumo</span>
+  </a>
 
   <div class="nav-tabs">
     <button class="nav-btn active" onclick="mostrarVista('timer')">Enfoque</button>
@@ -106,7 +135,13 @@
       <span class="user-name">{{ user.name }}</span>
       {% for m in medals[:1] %}
         <span class="medal-badge-nav medal-{{ m.tipo }}">
-          {{ '🥇' if m.tipo == 'gold' else '🥈' if m.tipo == 'silver' else '🥉' }}
+          {% if m.tipo == 'gold' %}
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="#D97706" stroke="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg>
+          {% elif m.tipo == 'silver' %}
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="#64748B" stroke="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg>
+          {% else %}
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="#C2510A" stroke="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg>
+          {% endif %}
         </span>
       {% endfor %}
       <span class="user-caret">▾</span>
@@ -158,12 +193,30 @@
   <div class="card category-card">
     <p class="label">¿En qué vas a enfocarte hoy?</p>
     <div class="category-grid" id="category-grid">
-      <button class="cat-btn active" data-cat="Certificación IA" onclick="seleccionarCat(this)">🤖 Certif. IA</button>
-      <button class="cat-btn" data-cat="Trabajo Freelance"  onclick="seleccionarCat(this)">💼 Freelance</button>
-      <button class="cat-btn" data-cat="Libro KDP"          onclick="seleccionarCat(this)">✍️ Libro KDP</button>
-      <button class="cat-btn" data-cat="Proyectos IA"       onclick="seleccionarCat(this)">🚀 Proyectos IA</button>
-      <button class="cat-btn" data-cat="Personal"           onclick="seleccionarCat(this)">🌱 Personal</button>
-      <button class="cat-btn" data-cat="Otro"               onclick="seleccionarCat(this)">⚡ Otro</button>
+      <button class="cat-btn active" data-cat="Opositor" onclick="seleccionarCat(this)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;margin-right:4px"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        Opositor
+      </button>
+      <button class="cat-btn" data-cat="Estudiante" onclick="seleccionarCat(this)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;margin-right:4px"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+        Estudiante
+      </button>
+      <button class="cat-btn" data-cat="Sesión de Trabajo" onclick="seleccionarCat(this)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;margin-right:4px"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+        Trabajo
+      </button>
+      <button class="cat-btn" data-cat="Sesión de Programación" onclick="seleccionarCat(this)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;margin-right:4px"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        Código
+      </button>
+      <button class="cat-btn" data-cat="Música (Focus)" onclick="seleccionarCat(this)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;margin-right:4px"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+        Música
+      </button>
+      <button class="cat-btn" data-cat="Otro" onclick="seleccionarCat(this)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;margin-right:4px"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+        Otro
+      </button>
     </div>
     <div id="custom-cats-grid" class="category-grid" style="margin-top:8px"></div>
     <button class="btn-add-cat" onclick="abrirCatModal()">＋ Nueva categoría</button>
@@ -178,21 +231,47 @@
       <button class="mode-pill"        id="pill-descanso-largo" onclick="cambiarModo('descanso-largo')">Descanso largo</button>
     </div>
 
-    <div class="ring-container">
-      <svg class="ring" viewBox="0 0 280 280">
-        <circle class="ring-bg"   cx="140" cy="140" r="120"/>
-        <circle class="ring-fill" cx="140" cy="140" r="120" id="ring-fill"/>
+    <div class="ring-container" id="ring-container">
+      <svg class="ring" viewBox="0 0 300 300" id="ring-svg">
+        <!-- Ticks decorativos (60 marcas de minuto) -->
+        <g id="ring-ticks" opacity="0.18">
+          <!-- Generados por JS al cargar -->
+        </g>
+        <!-- Track de fondo -->
+        <circle class="ring-track" cx="150" cy="150" r="128"/>
+        <!-- Arco de progreso con gradiente -->
+        <circle class="ring-fill" cx="150" cy="150" r="128" id="ring-fill"
+                style="--ring-c:804"/>
+        <!-- Dot en la punta del arco -->
+        <circle class="ring-dot" r="9" id="ring-dot" cx="150" cy="22"/>
       </svg>
-      <div class="timer-display">
+      <div class="timer-display" id="timer-display">
         <span id="timer-time">25:00</span>
-        <span id="timer-label">Trabaja</span>
+        <span id="timer-label">Enfócate</span>
       </div>
     </div>
 
     <div class="controls">
-      <button class="btn-control btn-secondary" onclick="resetTimer()" title="Reiniciar">↺</button>
-      <button class="btn-control btn-primary"   id="btn-play" onclick="toggleTimer()">▶</button>
-      <button class="btn-control btn-secondary" onclick="saltarSesion()" title="Saltar">⏭</button>
+      <button class="btn-control btn-secondary" onclick="resetTimer()" title="Reiniciar">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+          <path d="M3 3v5h5"/>
+        </svg>
+      </button>
+      <button class="btn-control btn-primary" id="btn-play" onclick="toggleTimer()">
+        <svg id="play-icon" width="24" height="24" viewBox="0 0 24 24" fill="white" stroke="none">
+          <polygon points="6 3 20 12 6 21 6 3"/>
+        </svg>
+        <svg id="pause-icon" width="24" height="24" viewBox="0 0 24 24" fill="white" stroke="none" style="display:none">
+          <rect x="6" y="4" width="4" height="16" rx="1"/>
+          <rect x="14" y="4" width="4" height="16" rx="1"/>
+        </svg>
+      </button>
+      <button class="btn-control btn-secondary" onclick="saltarSesion()" title="Saltar sesión">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/>
+        </svg>
+      </button>
     </div>
 
     <div class="session-info">
@@ -394,7 +473,9 @@
 <div id="chat-widget" class="chat-widget">
   <!-- Botón flotante -->
   <button id="chat-toggle" class="chat-toggle" onclick="toggleChat()" title="Asistente Focumo">
-    <span id="chat-icon">🤖</span>
+    <svg id="chat-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+    </svg>
     <span id="chat-badge" class="chat-badge hidden">1</span>
   </button>
 
@@ -402,7 +483,9 @@
   <div id="chat-panel" class="chat-panel hidden">
     <div class="chat-header">
       <div class="chat-header-info">
-        <span class="chat-avatar">🤖</span>
+        <span class="chat-avatar" style="display:flex;align-items:center;justify-content:center;background:var(--primary-pale)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+        </span>
         <div>
           <div class="chat-name">Asistente Focumo</div>
           <div class="chat-status">● En línea</div>

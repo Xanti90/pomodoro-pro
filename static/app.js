@@ -6,15 +6,15 @@
 
 // ── ESTADO ─────────────────────────────────────────────────
 const MODOS = {
-  'trabajo':        { duracion: 25, label: 'Trabaja',  clase: '',        emoji: '🍅' },
-  'descanso-corto': { duracion: 5,  label: 'Descansa', clase: 'break-s', emoji: '☕' },
-  'descanso-largo': { duracion: 15, label: 'Recarga',  clase: 'break-l', emoji: '🌿' },
+  'trabajo':        { duracion: 25, label: 'Enfócate', clase: '',        emoji: '' },
+  'descanso-corto': { duracion: 5,  label: 'Descansa', clase: 'break-s', emoji: '' },
+  'descanso-largo': { duracion: 15, label: 'Recarga',  clase: 'break-l', emoji: '' },
 };
 
-const CIRC = 754; // 2π × 120
+const CIRC = 804; // 2π × 128 (nuevo radio)
 
 let modo              = 'trabajo';
-let categoria         = 'Certificación IA';
+let categoria         = 'Opositor';
 let segundosRestantes = 25 * 60;
 let segundosTotales   = 25 * 60;
 let corriendo         = false;
@@ -41,6 +41,7 @@ const elNota     = document.getElementById('nota-input');
 
 // ── INICIO ─────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  generarTicksRing();
   actualizarDisplay();
   cargarPomodorosHoy();
   cargarCategorias();
@@ -124,13 +125,17 @@ function toggleTimer() {
 
 function iniciarTimer() {
   corriendo = true;
-  elBtnPlay.textContent = '⏸';
+  document.getElementById('play-icon').style.display  = 'none';
+  document.getElementById('pause-icon').style.display = '';
+  document.getElementById('ring-container').classList.add('running');
   intervalo = setInterval(tick, 1000);
 }
 
 function pararTimer() {
   corriendo = false;
-  elBtnPlay.textContent = '▶';
+  document.getElementById('play-icon').style.display  = '';
+  document.getElementById('pause-icon').style.display = 'none';
+  document.getElementById('ring-container').classList.remove('running');
   clearInterval(intervalo);
 }
 
@@ -155,16 +160,58 @@ function actualizarDisplay() {
   const s = segundosRestantes % 60;
   const timeStr = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   elTiempo.textContent = timeStr;
-  const offset = CIRC * (segundosRestantes / segundosTotales);
+
+  const pct    = segundosRestantes / segundosTotales;
+  const offset = CIRC * pct;
+  elRing.style.strokeDasharray  = CIRC;
   elRing.style.strokeDashoffset = offset;
 
-  // Título de pestaña con cuenta atrás
+  // Dot indicador en la punta del arco
+  actualizarDot(pct);
+
+  // Título de pestaña
   if (corriendo) {
-    const emoji = MODOS[modo].emoji;
-    document.title = `${emoji} ${timeStr} — Pomodoro Pro`;
+    document.title = `${timeStr} — Focumo`;
   } else {
-    document.title = '🍅 Pomodoro Pro';
+    document.title = 'Focumo — Hackea tu enfoque';
   }
+}
+
+function actualizarDot(pct) {
+  const dot = document.getElementById('ring-dot');
+  if (!dot) return;
+  const r     = 128;
+  const cx    = 150;
+  const cy    = 150;
+  // El arco empieza a las 12 (-90°), avanza en el sentido horario
+  const angle = (1 - pct) * 2 * Math.PI - Math.PI / 2;
+  dot.setAttribute('cx', cx + r * Math.cos(angle));
+  dot.setAttribute('cy', cy + r * Math.sin(angle));
+}
+
+function generarTicksRing() {
+  const g = document.getElementById('ring-ticks');
+  if (!g) return;
+  const r = 138, cx = 150, cy = 150;
+  for (let i = 0; i < 60; i++) {
+    const angle = (i / 60) * 2 * Math.PI - Math.PI / 2;
+    const isMain = i % 5 === 0;
+    const r1 = isMain ? r - 6 : r - 3;
+    const x1 = cx + r * Math.cos(angle);
+    const y1 = cy + r * Math.sin(angle);
+    const x2 = cx + r1 * Math.cos(angle);
+    const y2 = cy + r1 * Math.sin(angle);
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', x1); line.setAttribute('y1', y1);
+    line.setAttribute('x2', x2); line.setAttribute('y2', y2);
+    line.setAttribute('stroke', 'rgba(160,110,55,0.6)');
+    line.setAttribute('stroke-width', isMain ? 2 : 1);
+    g.appendChild(line);
+  }
+}
+
+function logoClick(e) {
+  // Permitir navegación normal a /
 }
 
 function saltarSesion() {
@@ -181,10 +228,10 @@ async function finSesion(saltada = false) {
     elPomCount.textContent = pomodorosHoy;
 
     reproducirSonido();
-    mostrarSiri('🍅', '¡Pomodoro completado!', `${cfg.duracion} min de enfoque en "${categoria}"`);
+    mostrarSiri('', 'Sesión completada', `${cfg.duracion} min de foco en "${categoria}"`);
 
     await guardarSesion({ tipo: 'trabajo', categoria, duracion: cfg.duracion, nota: elNota.value.trim() });
-    await enviarNotificacion('🍅 ¡Pomodoro completado!', `${cfg.duracion} minutos de ${categoria}.`);
+    await enviarNotificacion('Sesión completada', `${cfg.duracion} minutos de ${categoria}.`);
 
     const siguienteModo = rondaActual < 4 ? 'descanso-corto' : 'descanso-largo';
     rondaActual = rondaActual < 4 ? rondaActual + 1 : 1;
@@ -193,9 +240,9 @@ async function finSesion(saltada = false) {
 
   } else if (modo !== 'trabajo' && !saltada) {
     reproducirSonido();
-    mostrarSiri('⚡', '¡Descanso terminado!', 'Es hora de volver al trabajo.');
+    mostrarSiri('', 'Descanso completado', 'Vuelve al trabajo cuando estés listo.');
     await guardarSesion({ tipo: modo, categoria: modo, duracion: cfg.duracion, nota: '' });
-    await enviarNotificacion('⚡ ¡Descanso terminado!', 'Vuelve al trabajo.');
+    await enviarNotificacion('Descanso completado', 'Vuelve al trabajo.');
     setTimeout(() => cambiarModo('trabajo'), 3200);
 
   } else {
@@ -204,8 +251,8 @@ async function finSesion(saltada = false) {
 }
 
 // ── ANIMACIÓN SIRI ─────────────────────────────────────────
-function mostrarSiri(emoji, titulo, msg) {
-  document.getElementById('siri-emoji').textContent = emoji;
+function mostrarSiri(_emoji, titulo, msg) {
+  // emoji param deprecated — siri-emoji now uses SVG in HTML
   document.getElementById('siri-title').textContent = titulo;
   document.getElementById('siri-msg').textContent   = msg;
   const overlay = document.getElementById('siri-overlay');

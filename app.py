@@ -176,6 +176,7 @@ def init_db() -> None:
     db.close()
     _migrar_json()
     _generar_codigos_referido_faltantes()
+    _auto_seed_produccion()
 
 def _ensure_column(db, table: str, col: str, col_def: str) -> None:
     cols = [r[1] for r in db.execute(f"PRAGMA table_info({table})").fetchall()]
@@ -184,6 +185,28 @@ def _ensure_column(db, table: str, col: str, col_def: str) -> None:
             db.execute(f"ALTER TABLE {table} ADD COLUMN {col} {col_def}")
         except Exception:
             pass
+
+def _auto_seed_produccion() -> None:
+    """En producción, siembra 50 bots si la DB tiene menos de 5 usuarios.
+    Garantiza que el ranking y ligas tengan datos desde el primer arranque."""
+    if os.environ.get("PRODUCTION") != "1":
+        return
+    try:
+        db  = sqlite3.connect(str(DB_PATH))
+        n   = db.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+        db.close()
+        if n >= 5:
+            return
+        import subprocess, sys
+        seed_path = BASE_DIR / "seed.py"
+        if seed_path.exists():
+            subprocess.run(
+                [sys.executable, str(seed_path), "--usuarios", "50", "--semanas", "12"],
+                cwd=str(BASE_DIR), timeout=120
+            )
+    except Exception as e:
+        print(f"[auto-seed] Error (no crítico): {e}")
+
 
 def _generar_codigos_referido_faltantes() -> None:
     """Genera referral_code para usuarios que aún no lo tienen."""
