@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ligas — Focumo</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="stylesheet" href="/static/style.css">
+  <style>
+    /* ── LIGAS — Estilos exclusivos ─────────────────────────── */
+    .leagues-wrap {
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 32px 20px 80px;
+    }
+
+    /* Header con liga del usuario */
+    .my-league-card {
+      background: rgba(255,252,242,0.72);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(160,110,55,0.18);
+      border-radius: 24px;
+      padding: 28px 32px;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      margin-bottom: 28px;
+      box-shadow: 0 8px 40px rgba(100,60,10,0.10);
+      position: relative;
+      overflow: hidden;
+    }
+    .my-league-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--liga-gradient, linear-gradient(135deg, rgba(242,192,80,.08) 0%, transparent 60%));
+      pointer-events: none;
+    }
+    .my-league-badge {
+      flex-shrink: 0;
+    }
+    .my-league-info {
+      flex: 1;
+    }
+    .my-league-name {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -0.02em;
+      line-height: 1;
+    }
+    .my-league-sub {
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+    .my-league-progress {
+      margin-top: 14px;
+    }
+    .progress-bar-track {
+      background: var(--bg2);
+      border-radius: 99px;
+      height: 7px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      border-radius: 99px;
+      background: var(--primary);
+      transition: width .6s cubic-bezier(.22,1,.36,1);
+    }
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: .72rem;
+      color: var(--muted);
+      margin-top: 5px;
+    }
+    .my-league-rank {
+      text-align: right;
+      flex-shrink: 0;
+    }
+    .rank-num {
+      font-size: 2.2rem;
+      font-weight: 900;
+      color: var(--primary);
+      line-height: 1;
+    }
+    .rank-label {
+      font-size: .72rem;
+      color: var(--muted);
+    }
+
+    /* Filtro de ligas */
+    .liga-filters {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .liga-filter-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 7px 14px;
+      border-radius: 99px;
+      border: 1.5px solid var(--border);
+      background: var(--surface);
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all .18s;
+    }
+    .liga-filter-btn:hover,
+    .liga-filter-btn.active {
+      border-color: var(--primary);
+      color: var(--primary);
+      background: var(--primary-pale);
+    }
+
+    /* Tabla de ranking */
+    .ranking-table {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .ranking-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: rgba(255,252,242,0.7);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(160,110,55,0.13);
+      border-radius: 14px;
+      padding: 12px 16px;
+      transition: transform .15s, box-shadow .15s;
+    }
+    .ranking-row:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(100,60,10,0.10);
+    }
+    .ranking-row.es-yo {
+      border-color: var(--primary);
+      background: rgba(212,146,79,0.08);
+    }
+    .ranking-row.es-yo::before {
+      content: '';
+    }
+    .row-pos {
+      font-size: .85rem;
+      font-weight: 800;
+      color: var(--muted);
+      width: 28px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .row-pos.top1 { color: #B8860B; }
+    .row-pos.top2 { color: #8A9BA8; }
+    .row-pos.top3 { color: #A0522D; }
+    .row-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      object-fit: cover;
+      flex-shrink: 0;
+    }
+    .row-avatar-text {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--primary-pale);
+      border: 1.5px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .85rem;
+      font-weight: 700;
+      color: var(--primary);
+      flex-shrink: 0;
+    }
+    .row-name-wrap {
+      flex: 1;
+      min-width: 0;
+    }
+    .row-name {
+      font-weight: 700;
+      font-size: .9rem;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .row-name .yo-badge {
+      font-size: .65rem;
+      background: var(--primary);
+      color: #fff;
+      border-radius: 99px;
+      padding: 1px 7px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .row-stats {
+      font-size: .72rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+    .row-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    .row-poms {
+      font-size: .9rem;
+      font-weight: 800;
+      color: var(--primary);
+    }
+    .row-poms-label {
+      font-size: .65rem;
+      color: var(--muted);
+      display: block;
+      text-align: right;
+    }
+    .pro-crown {
+      display: inline-block;
+      flex-shrink: 0;
+    }
+
+    /* SVG Badges de Liga */
+    .league-badge svg {
+      display: block;
+    }
+
+    /* Sección "cómo funciona" */
+    .leagues-explainer {
+      background: rgba(255,252,242,0.72);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(160,110,55,0.13);
+      border-radius: 20px;
+      padding: 24px 28px;
+      margin-top: 28px;
+    }
+    .explainer-title {
+      font-size: .95rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 16px;
+    }
+    .explainer-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+    }
+    .explainer-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      padding: 16px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(160,110,55,0.12);
+      background: rgba(255,250,235,.6);
+      text-align: center;
+    }
+    .explainer-item span {
+      font-size: .78rem;
+      color: var(--muted);
+      font-weight: 500;
+      line-height: 1.4;
+    }
+    .explainer-item strong {
+      font-size: .82rem;
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    /* Nav back */
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: .85rem;
+      margin-bottom: 20px;
+    }
+    .back-link:hover { text-decoration: underline; }
+
+    .section-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .empty-leagues {
+      text-align: center;
+      padding: 48px 20px;
+      color: var(--muted);
+      font-size: .9rem;
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">
+    <img src="/static/favicon.svg" alt="Focumo" style="width:24px;height:24px;vertical-align:middle;margin-right:4px">
+    <span>Focumo</span>
+  </div>
+  <div class="nav-tabs">
+    <a href="/app" class="nav-btn" style="text-decoration:none">Temporizador</a>
+    <a href="/app" class="nav-btn" style="text-decoration:none">Estadísticas</a>
+    <button class="nav-btn active">Ligas</button>
+  </div>
+  <div class="nav-right">
+    <div class="user-menu" onclick="this.nextElementSibling.classList.toggle('hidden')">
+      {% if user and user.avatar_url %}
+        <img src="{{ user.avatar_url }}" class="user-avatar" alt="{{ user.name }}">
+      {% else %}
+        <div class="user-avatar-text">{{ (user.name or 'U')[0].upper() }}</div>
+      {% endif %}
+      <span class="user-name">{{ user.name }}</span>
+      <span class="user-caret">▾</span>
+    </div>
+    <div class="user-dropdown hidden">
+      <div class="user-info">
+        <div class="user-info-name">{{ user.name }}</div>
+        <div class="user-info-email">{{ user.email }}</div>
+      </div>
+      <a href="/logout" class="dropdown-item logout-item">Cerrar sesión</a>
+    </div>
+  </div>
+</nav>
+
+<div class="leagues-wrap">
+
+  <a href="/app" class="back-link">
+    <!-- Lucide: arrow-left inline SVG -->
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M19 12H5M12 5l-7 7 7 7"/>
+    </svg>
+    Volver al temporizador
+  </a>
+
+  <!-- Mi liga -->
+  <div id="my-league-card" class="my-league-card">
+    <div class="my-league-badge league-badge" id="my-badge"></div>
+    <div class="my-league-info">
+      <div class="my-league-name" id="my-league-name">Cargando…</div>
+      <div class="my-league-sub"  id="my-league-sub"></div>
+      <div class="my-league-progress" id="my-progress" style="display:none">
+        <div class="progress-bar-track">
+          <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
+        </div>
+        <div class="progress-label">
+          <span id="progress-left"></span>
+          <span id="progress-right"></span>
+        </div>
+      </div>
+    </div>
+    <div class="my-league-rank">
+      <div class="rank-num" id="my-rank">—</div>
+      <div class="rank-label">de <span id="total-users">—</span></div>
+    </div>
+  </div>
+
+  <!-- Filtros -->
+  <div class="liga-filters">
+    <button class="liga-filter-btn active" data-liga="all" onclick="filtrarLiga(this,'all')">
+      Todos
+    </button>
+    <button class="liga-filter-btn" data-liga="diamante" onclick="filtrarLiga(this,'diamante')">
+      <!-- Diamond SVG -->
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="#7DD3FC" stroke="#38BDF8" stroke-width="1.5">
+        <path d="M6 3h12l4 6-10 12L2 9z"/>
+      </svg>
+      Diamante
+    </button>
+    <button class="liga-filter-btn" data-liga="oro" onclick="filtrarLiga(this,'oro')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="#FCD34D" stroke="#F59E0B" stroke-width="1.5">
+        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/>
+      </svg>
+      Oro
+    </button>
+    <button class="liga-filter-btn" data-liga="plata" onclick="filtrarLiga(this,'plata')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="#CBD5E1" stroke="#94A3B8" stroke-width="1.5">
+        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/>
+      </svg>
+      Plata
+    </button>
+    <button class="liga-filter-btn" data-liga="bronce" onclick="filtrarLiga(this,'bronce')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="#FCA880" stroke="#EA7C3A" stroke-width="1.5">
+        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/>
+      </svg>
+      Bronce
+    </button>
+  </div>
+
+  <!-- Ranking -->
+  <div class="section-title">
+    <!-- Trophy SVG -->
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--primary)"
+         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M6 9H4a2 2 0 0 1-2-2V5h4M18 9h2a2 2 0 0 0 2-2V5h-4"/>
+      <path d="M6 9c0 3.31 2.69 6 6 6s6-2.69 6-6V3H6v6z"/>
+      <path d="M12 15v4M8 19h8"/>
+    </svg>
+    Ranking de Alto Rendimiento
+  </div>
+
+  <div id="ranking-table" class="ranking-table">
+    <div class="empty-leagues">Cargando ranking…</div>
+  </div>
+
+  <!-- Cómo funciona -->
+  <div class="leagues-explainer">
+    <div class="explainer-title">
+      <!-- Info SVG -->
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--muted)"
+           stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;margin-right:4px">
+        <circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>
+      </svg>
+      Cómo funcionan las Ligas
+    </div>
+    <div class="explainer-grid">
+      <div class="explainer-item">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="#FCA880" stroke="#EA7C3A" stroke-width="1.5">
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/>
+        </svg>
+        <strong>Bronce</strong>
+        <span>Punto de partida. Completa sesiones para escalar.</span>
+      </div>
+      <div class="explainer-item">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="#CBD5E1" stroke="#94A3B8" stroke-width="1.5">
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/>
+        </svg>
+        <strong>Plata</strong>
+        <span>Top 50% de usuarios. Constancia sostenida.</span>
+      </div>
+      <div class="explainer-item">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="#FCD34D" stroke="#F59E0B" stroke-width="1.5">
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/>
+        </svg>
+        <strong>Oro</strong>
+        <span>Top 20%. Disciplina de élite, cada semana.</span>
+      </div>
+      <div class="explainer-item">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="#7DD3FC" stroke="#38BDF8" stroke-width="1.5">
+          <path d="M6 3h12l4 6-10 12L2 9z"/>
+        </svg>
+        <strong>Diamante</strong>
+        <span>Top 5%. Los que mueven el mundo con foco total.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Muro PRO -->
+  {% if not is_pro %}
+  <div class="pro-upsell-card" style="
+    margin-top:24px;
+    background: linear-gradient(135deg, rgba(212,146,79,.15) 0%, rgba(184,115,58,.08) 100%);
+    backdrop-filter: blur(16px);
+    border: 1.5px solid rgba(184,115,58,.30);
+    border-radius: 20px;
+    padding: 28px 32px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  ">
+    <div style="flex-shrink:0">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--primary)"
+           stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/>
+        <circle cx="12" cy="11" r="2" fill="var(--primary)" stroke="none"/>
+      </svg>
+    </div>
+    <div style="flex:1">
+      <div style="font-size:1rem;font-weight:800;color:var(--text);margin-bottom:4px">
+        Accede a Ligas Oro y Diamante
+      </div>
+      <div style="font-size:.82rem;color:var(--muted)">
+        Con PRO compites en las ligas de élite, activas el Streak Shield y obtienes
+        la coronita
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="#F59E0B" stroke="none" style="display:inline;vertical-align:middle">
+          <path d="M3 18h18l-2-8-4 4-3-8-3 8-4-4z"/>
+        </svg>
+        junto a tu nombre. Pago único, para siempre.
+      </div>
+    </div>
+    <button onclick="abrirModalPro()" style="
+      flex-shrink:0;
+      background:var(--primary);
+      color:#fff;
+      border:none;
+      border-radius:12px;
+      padding:10px 20px;
+      font-size:.85rem;
+      font-weight:700;
+      cursor:pointer;
+      transition: background .15s, transform .15s;
+      white-space:nowrap;
+    " onmouseover="this.style.background='#9A5E28'" onmouseout="this.style.background='var(--primary)'">
+      Hacerme PRO — 4,99€
+    </button>
+  </div>
+  {% endif %}
+
+</div>
+
+<!-- Modal PRO -->
+<div id="modal-pro" class="modal-overlay hidden" onclick="cerrarModalPro(event)">
+  <div class="modal-card" style="max-width:420px">
+    <div style="text-align:center;margin-bottom:20px">
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--primary)"
+           stroke-width="1.5" style="margin:0 auto 8px">
+        <path d="M3 18h18l-2-8-4 4-3-8-3 8-4-4z" fill="#FCD34D" stroke="#F59E0B"/>
+      </svg>
+      <h3 style="font-size:1.3rem;font-weight:800;color:var(--text)">Focumo PRO</h3>
+      <p style="font-size:.82rem;color:var(--muted);margin-top:4px">Un único pago. Acceso de por vida.</p>
+    </div>
+    <ul style="list-style:none;padding:0;margin-bottom:24px;display:flex;flex-direction:column;gap:10px">
+      <li style="display:flex;align-items:center;gap:10px;font-size:.88rem;color:var(--text)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7A9E7E" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+        Acceso a ligas Oro y Diamante
+      </li>
+      <li style="display:flex;align-items:center;gap:10px;font-size:.88rem;color:var(--text)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7A9E7E" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+        Coronita en tu perfil y ranking
+      </li>
+      <li style="display:flex;align-items:center;gap:10px;font-size:.88rem;color:var(--text)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7A9E7E" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+        Streak Shield — protege tu racha 1 vez/semana
+      </li>
+      <li style="display:flex;align-items:center;gap:10px;font-size:.88rem;color:var(--text)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7A9E7E" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+        Estadísticas avanzadas y historial ilimitado
+      </li>
+      <li style="display:flex;align-items:center;gap:10px;font-size:.88rem;color:var(--text)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7A9E7E" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>
+        Salas de estudio privadas
+      </li>
+    </ul>
+    <button onclick="cerrarModalPro()" style="
+      width:100%;
+      background:var(--primary);
+      color:#fff;
+      border:none;
+      border-radius:14px;
+      padding:14px;
+      font-size:1rem;
+      font-weight:800;
+      cursor:pointer;
+      letter-spacing:.01em;
+    ">
+      Desbloquear PRO — 4,99€
+    </button>
+    <p style="text-align:center;font-size:.72rem;color:var(--muted);margin-top:10px">
+      Pago seguro. Sin suscripción mensual. Sin sorpresas.
+    </p>
+  </div>
+</div>
+
+<footer class="app-footer">
+  <span>© 2026 Santiago Jiménez Téllez & Foco Studio. Todos los derechos reservados.</span>
+  <span class="footer-sep">·</span>
+  <a href="/privacy">Privacidad</a>
+  <span class="footer-sep">·</span>
+  <a href="/terms">Términos</a>
+</footer>
+
+<script>
+const IS_PRO = {{ 'true' if is_pro else 'false' }};
+let rankingData = [];
+let ligaActual  = 'all';
+
+// ── SVG Badges ────────────────────────────────────────────────
+const BADGE_SVG = {
+  diamante: `<svg width="52" height="52" viewBox="0 0 52 52" fill="none">
+    <defs>
+      <linearGradient id="dg" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#BAE6FD"/>
+        <stop offset="100%" stop-color="#38BDF8"/>
+      </linearGradient>
+    </defs>
+    <path d="M13 8h26l10 14-23 22L3 22z" fill="url(#dg)" stroke="#0EA5E9" stroke-width="1.5"/>
+    <path d="M13 8l10 14h6l10-14" stroke="#0EA5E9" stroke-width="1" opacity=".5"/>
+    <path d="M3 22h46" stroke="#0EA5E9" stroke-width="1" opacity=".4"/>
+  </svg>`,
+  oro: `<svg width="52" height="52" viewBox="0 0 52 52" fill="none">
+    <defs>
+      <linearGradient id="gg" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#FDE68A"/>
+        <stop offset="100%" stop-color="#F59E0B"/>
+      </linearGradient>
+    </defs>
+    <circle cx="26" cy="26" r="22" fill="url(#gg)" stroke="#D97706" stroke-width="1.5"/>
+    <path d="M26 12l3.5 7.1 7.8 1.14-5.65 5.5 1.33 7.76L26 30 15.02 33.5l1.33-7.76L10.7 20.24l7.8-1.14z"
+          fill="#fff" opacity=".9"/>
+  </svg>`,
+  plata: `<svg width="52" height="52" viewBox="0 0 52 52" fill="none">
+    <defs>
+      <linearGradient id="sg" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#E2E8F0"/>
+        <stop offset="100%" stop-color="#94A3B8"/>
+      </linearGradient>
+    </defs>
+    <circle cx="26" cy="26" r="22" fill="url(#sg)" stroke="#64748B" stroke-width="1.5"/>
+    <path d="M26 12l3.5 7.1 7.8 1.14-5.65 5.5 1.33 7.76L26 30 15.02 33.5l1.33-7.76L10.7 20.24l7.8-1.14z"
+          fill="#fff" opacity=".85"/>
+  </svg>`,
+  bronce: `<svg width="52" height="52" viewBox="0 0 52 52" fill="none">
+    <defs>
+      <linearGradient id="bg2" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#FED7AA"/>
+        <stop offset="100%" stop-color="#EA7C3A"/>
+      </linearGradient>
+    </defs>
+    <circle cx="26" cy="26" r="22" fill="url(#bg2)" stroke="#C2510A" stroke-width="1.5"/>
+    <path d="M26 12l3.5 7.1 7.8 1.14-5.65 5.5 1.33 7.76L26 30 15.02 33.5l1.33-7.76L10.7 20.24l7.8-1.14z"
+          fill="#fff" opacity=".8"/>
+  </svg>`,
+};
+
+const LIGA_LABEL = {
+  diamante: 'Liga Diamante',
+  oro:      'Liga Oro',
+  plata:    'Liga Plata',
+  bronce:   'Liga Bronce',
+};
+
+const CROWN_SVG = `<svg width="13" height="13" viewBox="0 0 24 24" fill="#F59E0B" stroke="none"
+  style="display:inline;vertical-align:middle;margin-left:3px" title="PRO">
+  <path d="M3 18h18l-2-8-4 4-3-8-3 8-4-4z"/>
+</svg>`;
+
+// ── Carga inicial ─────────────────────────────────────────────
+async function cargarLigas() {
+  try {
+    const res  = await fetch('/api/leagues');
+    const data = await res.json();
+    rankingData = data.ranking || [];
+    renderMyLeague(data.yo, data.total);
+    renderRanking(rankingData);
+  } catch (e) {
+    document.getElementById('ranking-table').innerHTML =
+      '<div class="empty-leagues">Error al cargar el ranking. Recarga la página.</div>';
+  }
+}
+
+function renderMyLeague(yo, total) {
+  if (!yo) return;
+  document.getElementById('my-badge').innerHTML = BADGE_SVG[yo.liga] || BADGE_SVG.bronce;
+  document.getElementById('my-league-name').textContent = LIGA_LABEL[yo.liga];
+  document.getElementById('my-rank').textContent = '#' + yo.rank;
+  document.getElementById('total-users').textContent = total;
+
+  const sub = document.getElementById('my-league-sub');
+  sub.textContent = `${yo.pomodoros} sesiones · ${Math.round(yo.minutos/60*10)/10}h de foco`;
+
+  if (yo.liga !== 'diamante' && yo.pts_para_subir > 0) {
+    const prog = document.getElementById('my-progress');
+    prog.style.display = 'block';
+    const pct = Math.max(5, Math.min(95, 100 - (yo.pts_para_subir / (yo.pomodoros + yo.pts_para_subir)) * 100));
+    document.getElementById('progress-fill').style.width = pct + '%';
+    document.getElementById('progress-left').textContent = yo.pomodoros + ' sesiones';
+    document.getElementById('progress-right').textContent = '+' + yo.pts_para_subir + ' para subir de liga';
+  }
+}
+
+function renderRanking(data) {
+  const tabla = document.getElementById('ranking-table');
+  const filtrados = ligaActual === 'all' ? data : data.filter(r => r.liga === ligaActual);
+
+  if (!filtrados.length) {
+    tabla.innerHTML = '<div class="empty-leagues">No hay usuarios en esta liga todavía.</div>';
+    return;
+  }
+
+  tabla.innerHTML = filtrados.slice(0, 50).map(r => {
+    const posClass = r.rank === 1 ? 'top1' : r.rank === 2 ? 'top2' : r.rank === 3 ? 'top3' : '';
+    const avatar   = r.avatar_url
+      ? `<img src="${r.avatar_url}" class="row-avatar" alt="${r.name}">`
+      : `<div class="row-avatar-text">${r.name[0].toUpperCase()}</div>`;
+
+    const badgeSm  = BADGE_SVG[r.liga]
+      ? BADGE_SVG[r.liga].replace('width="52"','width="20"').replace('height="52"','height="20"')
+      : '';
+
+    const crown = r.plan === 'pro' ? CROWN_SVG : '';
+    const yoBadge = r.es_yo ? '<span class="yo-badge">tú</span>' : '';
+    const horas = Math.round(r.minutos / 60 * 10) / 10;
+
+    return `
+      <div class="ranking-row ${r.es_yo ? 'es-yo' : ''}">
+        <div class="row-pos ${posClass}">${r.rank <= 3 ? ['①','②','③'][r.rank-1] : r.rank}</div>
+        ${avatar}
+        <div class="row-name-wrap">
+          <div class="row-name">
+            <span>${r.name}</span>${crown}${yoBadge}
+          </div>
+          <div class="row-stats">${horas}h · ${r.pomodoros} sesiones</div>
+        </div>
+        <div class="row-right">
+          <div>
+            <div class="row-poms">${r.pomodoros}</div>
+            <span class="row-poms-label">sesiones</span>
+          </div>
+          <div class="league-badge" style="line-height:0">${badgeSm}</div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function filtrarLiga(btn, liga) {
+  document.querySelectorAll('.liga-filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  ligaActual = liga;
+  renderRanking(rankingData);
+}
+
+function abrirModalPro() {
+  document.getElementById('modal-pro').classList.remove('hidden');
+}
+function cerrarModalPro(e) {
+  if (!e || e.target.id === 'modal-pro') {
+    document.getElementById('modal-pro').classList.add('hidden');
+  }
+}
+
+cargarLigas();
+</script>
+
+</body>
+</html>

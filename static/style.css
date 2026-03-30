@@ -537,3 +537,83 @@ nav { display:flex; align-items:center; justify-content:space-between;
   .medals-row  { flex-direction:column; }
   .chat-panel  { width:290px; right:-8px; }
 }
+
+/* ══ PRO BLUR WALL ══════════════════════════════════════════ */
+.pro-blur-wrapper {
+  position: relative;
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-top: 16px;
+}
+.pro-blur-content {
+  filter: blur(5px);
+  pointer-events: none;
+  user-select: none;
+}
+.pro-blur-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: rgba(251,243,227,0.65);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  cursor: pointer;
+  padding: 24px;
+  text-align: center;
+  border-radius: var(--radius);
+  border: 1.5px dashed rgba(184,115,58,.30);
+  transition: background .2s;
+}
+.pro-blur-overlay:hover { background: rgba(251,243,227,0.75); }
+.pro-lock-icon {
+  background: rgba(255,252,242,.9);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  width: 56px; height: 56px;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: var(--shadow);
+}
+.pro-lock-title {
+  font-size: .95rem;
+  font-weight: 800;
+  color: var(--text);
+}
+.pro-lock-sub {
+  font-size: .78rem;
+  color: var(--muted);
+  max-width: 280px;
+  line-height: 1.5;
+}
+.pro-lock-btn {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 9px 20px;
+  font-size: .82rem;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 4px;
+  transition: background .15s, transform .1s;
+}
+.pro-lock-btn:hover { background: #9A5E28; transform: translateY(-1px); }
+
+/* ══ MODAL PRO ══════════════════════════════════════════════ */
+#modal-pro .modal-card {
+  max-width: 420px;
+}
+
+/* ══ NAV LINK BUTTON (para ligas) ══════════════════════════ */
+a.nav-btn {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+a.nav-btn:hover { background: var(--surface); }
+
+/* ══ NAV ICON BTN SVG ════════════════════════════════════════ */
+.nav-icon-btn svg { display: block; }

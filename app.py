@@ -795,6 +795,91 @@ def chat_history():
 
 
 # ══════════════════════════════════════════════════════════════
+# LIGAS
+# ══════════════════════════════════════════════════════════════
+
+def _asignar_liga(rank: int, total: int) -> str:
+    """Asigna liga según posición relativa en el ranking global."""
+    if total == 0:
+        return "bronce"
+    pct = rank / total
+    if pct <= 0.05:
+        return "diamante"
+    if pct <= 0.20:
+        return "oro"
+    if pct <= 0.50:
+        return "plata"
+    return "bronce"
+
+
+@app.route("/leagues")
+@login_required
+def leagues_page():
+    user = get_current_user()
+    return render_template("leagues.html", user=user,
+                           google_enabled=GOOGLE_ENABLED,
+                           is_pro=is_pro(user) if user else False)
+
+
+@app.route("/api/leagues")
+@login_required
+def leagues_data():
+    """Ranking global con liga calculada por posición relativa."""
+    db   = get_db()
+    uid  = session["user_id"]
+
+    rows = db.execute("""
+        SELECT u.id, u.name, u.avatar_url, u.plan,
+               COALESCE(SUM(CASE WHEN s.tipo='trabajo' THEN 1 ELSE 0 END), 0) AS pomodoros,
+               COALESCE(SUM(CASE WHEN s.tipo='trabajo' THEN s.duracion ELSE 0 END), 0) AS minutos
+        FROM users u
+        LEFT JOIN sessions s ON s.user_id = u.id
+        GROUP BY u.id
+        ORDER BY pomodoros DESC
+    """).fetchall()
+
+    total   = len(rows)
+    result  = []
+    my_data = None
+
+    for i, r in enumerate(rows):
+        liga = _asignar_liga(i + 1, total)
+        entry = {
+            "rank":      i + 1,
+            "user_id":   r["id"],
+            "name":      r["name"],
+            "avatar_url": r["avatar_url"] or "",
+            "plan":      r["plan"],
+            "pomodoros": r["pomodoros"],
+            "minutos":   r["minutos"],
+            "liga":      liga,
+            "es_yo":     r["id"] == uid,
+        }
+        result.append(entry)
+        if r["id"] == uid:
+            my_data = entry
+
+    # Calcula puntos para subir de liga
+    if my_data:
+        rank = my_data["rank"]
+        umbral_oro      = max(1, int(total * 0.20))
+        umbral_plata    = max(1, int(total * 0.50))
+        liga_actual     = my_data["liga"]
+        pts_actuales    = my_data["pomodoros"]
+
+        if liga_actual == "bronce" and rank > umbral_plata:
+            usuario_umbral = result[umbral_plata - 1] if umbral_plata <= len(result) else None
+            my_data["pts_para_subir"] = max(0, (usuario_umbral["pomodoros"] - pts_actuales + 1)) if usuario_umbral else 0
+        elif liga_actual == "plata":
+            usuario_umbral = result[umbral_oro - 1] if umbral_oro <= len(result) else None
+            my_data["pts_para_subir"] = max(0, (usuario_umbral["pomodoros"] - pts_actuales + 1)) if usuario_umbral else 0
+        else:
+            my_data["pts_para_subir"] = 0
+
+    return jsonify({"ranking": result[:100], "yo": my_data, "total": total})
+
+
+# ══════════════════════════════════════════════════════════════
 # MAIN
 # ══════════════════════════════════════════════════════════════
 

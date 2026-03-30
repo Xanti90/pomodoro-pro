@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Focumo — Tu foco, gamificado.</title>
+  <title>Focumo — Hackea tu enfoque.</title>
   <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
-  <meta name="description" content="Focumo: el temporizador Pomodoro con ranking global y medallas.">
+  <meta name="description" content="Focumo: alto rendimiento gamificado. Ligas, rachas y comunidad para opositores, programadores y fundadores.">
   <link rel="stylesheet" href="/static/style.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
@@ -19,9 +19,13 @@
     <div class="siri-ring r5"></div>
   </div>
   <div class="siri-content">
-    <div class="siri-emoji" id="siri-emoji">🍅</div>
-    <h2  class="siri-title" id="siri-title">¡Pomodoro completado!</h2>
-    <p   class="siri-msg"   id="siri-msg">Mantuviste el foco. ¡Descansa!</p>
+    <div class="siri-emoji" id="siri-emoji">
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#D4924F" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+      </svg>
+    </div>
+    <h2  class="siri-title" id="siri-title">Sesión completada</h2>
+    <p   class="siri-msg"   id="siri-msg">Mantuviste el foco. Mereces el descanso.</p>
     <span class="siri-tap">Toca para continuar</span>
   </div>
 </div>
@@ -80,13 +84,19 @@
   </div>
 
   <div class="nav-tabs">
-    <button class="nav-btn active" onclick="mostrarVista('timer')">Temporizador</button>
-    <button class="nav-btn"        onclick="mostrarVista('stats')">Estadísticas</button>
-    <button class="nav-btn"        onclick="mostrarVista('ranking')">Ranking 🏆</button>
+    <button class="nav-btn active" onclick="mostrarVista('timer')">Enfoque</button>
+    <button class="nav-btn"        onclick="mostrarVista('stats')">Progreso</button>
+    <button class="nav-btn"        onclick="mostrarVista('ranking')">Ranking</button>
+    <a href="/leagues" class="nav-btn" style="text-decoration:none">Ligas</a>
   </div>
 
   <div class="nav-right">
-    <button class="nav-icon-btn" id="btn-sonido" onclick="toggleSoundPanel()" title="Sonidos">🔔</button>
+    <button class="nav-icon-btn" id="btn-sonido" onclick="toggleSoundPanel()" title="Sonidos">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 8a6 6 0 0 1 0 8M14 3.23A8 8 0 0 1 14 20.77"/>
+        <path d="M11 5L6 9H2v6h4l5 4V5z"/>
+      </svg>
+    </button>
     <div class="user-menu" onclick="toggleUserMenu()">
       {% if user and user.avatar_url %}
         <img src="{{ user.avatar_url }}" class="user-avatar" alt="{{ user.name }}">
@@ -106,9 +116,18 @@
         <div class="user-info-name">{{ user.name }}</div>
         <div class="user-info-email">{{ user.email }}</div>
       </div>
-      <button class="dropdown-item" onclick="abrirBugModal()">🐛 Reportar bug</button>
-      <a href="https://ko-fi.com/pomodoropro" target="_blank" class="dropdown-item">☕ Apoya el proyecto</a>
-      <button class="dropdown-item" onclick="compartirStats()">📤 Compartir mis stats</button>
+      <button class="dropdown-item" onclick="abrirBugModal()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;margin-right:5px"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+        Reportar bug
+      </button>
+      <a href="https://ko-fi.com/focumo" target="_blank" class="dropdown-item">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;margin-right:5px"><path d="M18 8h1a4 4 0 0 1 0 8h-1M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8zM6 1v3M10 1v3M14 1v3"/></svg>
+        Invítame a un café
+      </a>
+      <button class="dropdown-item" onclick="compartirStats()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;margin-right:5px"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13"/></svg>
+        Compartir mis stats
+      </button>
       <a href="/logout" class="dropdown-item logout-item">Cerrar sesión</a>
     </div>
   </div>
@@ -116,28 +135,28 @@
 
 <!-- ══ PANEL SONIDOS ════════════════════════════════════════ -->
 <div id="sound-panel" class="sound-panel hidden">
-  <div class="sound-panel-title">🔔 Sonido al completar</div>
+  <div class="sound-panel-title">Sonido al completar</div>
   <div class="sound-options">
-    <button class="sound-opt active" data-sound="campana"  onclick="seleccionarSonido(this)">🔔 Campana</button>
-    <button class="sound-opt"        data-sound="bocina"   onclick="seleccionarSonido(this)">📯 Bocina</button>
-    <button class="sound-opt"        data-sound="boing"    onclick="seleccionarSonido(this)">🐰 Boing!</button>
-    <button class="sound-opt"        data-sound="fanfaria" onclick="seleccionarSonido(this)">🎺 Fanfarria</button>
-    <button class="sound-opt"        data-sound="chime"    onclick="seleccionarSonido(this)">✨ Chime</button>
+    <button class="sound-opt active" data-sound="campana"  onclick="seleccionarSonido(this)">Campana</button>
+    <button class="sound-opt"        data-sound="bocina"   onclick="seleccionarSonido(this)">Bocina</button>
+    <button class="sound-opt"        data-sound="boing"    onclick="seleccionarSonido(this)">Boing</button>
+    <button class="sound-opt"        data-sound="fanfaria" onclick="seleccionarSonido(this)">Fanfarria</button>
+    <button class="sound-opt"        data-sound="chime"    onclick="seleccionarSonido(this)">Chime</button>
   </div>
   <div class="volume-row">
-    <span>🔇</span>
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/></svg>
     <input type="range" id="vol-slider" min="0" max="1" step="0.05" value="0.7"
            oninput="cambiarVolumen(this.value)" class="vol-slider">
-    <span>🔊</span>
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
   </div>
-  <button class="sound-test-btn" onclick="probarSonido()">▶ Probar</button>
+  <button class="sound-test-btn" onclick="probarSonido()">Probar sonido</button>
 </div>
 
 <!-- ══ VISTA TIMER ══════════════════════════════════════════ -->
 <div id="vista-timer" class="vista">
 
   <div class="card category-card">
-    <p class="label">¿En qué vas a trabajar?</p>
+    <p class="label">¿En qué vas a enfocarte hoy?</p>
     <div class="category-grid" id="category-grid">
       <button class="cat-btn active" data-cat="Certificación IA" onclick="seleccionarCat(this)">🤖 Certif. IA</button>
       <button class="cat-btn" data-cat="Trabajo Freelance"  onclick="seleccionarCat(this)">💼 Freelance</button>
@@ -177,17 +196,26 @@
     </div>
 
     <div class="session-info">
-      <span class="info-pill">🍅 <span id="pomodoro-count">0</span> hoy</span>
-      <span class="info-pill">🔥 <span id="racha-count">0</span> días</span>
-      <span class="info-pill">📅 Ronda <span id="ronda-count">1</span>/4</span>
-      <span id="categoria-display" class="info-pill cat-active">🤖 Certif. IA</span>
+      <span class="info-pill">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;margin-right:3px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span id="pomodoro-count">0</span> hoy
+      </span>
+      <span class="info-pill">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;margin-right:3px"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
+        <span id="racha-count">0</span> días
+      </span>
+      <span class="info-pill">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;margin-right:3px"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Ronda <span id="ronda-count">1</span>/4
+      </span>
+      <span id="categoria-display" class="info-pill cat-active">Certif. IA</span>
     </div>
   </div>
 
   <!-- Ko-fi banner -->
   <div class="kofi-banner">
-    <span>☕ ¿Te ayuda a ser más productivo?</span>
-    <a href="https://ko-fi.com/pomodoropro" target="_blank" class="btn-kofi">
+    <span>¿Te ayuda a rendir más?</span>
+    <a href="https://ko-fi.com/focumo" target="_blank" class="btn-kofi">
       Invítame a un café
     </a>
   </div>
@@ -198,30 +226,38 @@
 <div id="vista-stats" class="vista hidden">
 
   <div class="stats-header">
-    <h2>Mis Estadísticas</h2>
-    <p class="stats-sub">Tu historial completo de productividad</p>
+    <h2>Tu Rendimiento</h2>
+    <p class="stats-sub">Cada sesión cuenta. Cada día importa.</p>
   </div>
 
   <div class="stats-grid">
     <div class="stat-card">
-      <div class="stat-icon">🍅</div>
+      <div class="stat-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      </div>
       <div class="stat-value" id="stat-total">0</div>
-      <div class="stat-label">Pomodoros totales</div>
+      <div class="stat-label">Sesiones totales</div>
     </div>
     <div class="stat-card">
-      <div class="stat-icon">⏱️</div>
+      <div class="stat-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+      </div>
       <div class="stat-value" id="stat-horas">0h</div>
-      <div class="stat-label">Horas de enfoque</div>
+      <div class="stat-label">Horas de foco</div>
     </div>
     <div class="stat-card">
-      <div class="stat-icon">🔥</div>
+      <div class="stat-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
+      </div>
       <div class="stat-value" id="stat-racha">0</div>
       <div class="stat-label">Días de racha</div>
     </div>
     <div class="stat-card">
-      <div class="stat-icon">📅</div>
+      <div class="stat-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      </div>
       <div class="stat-value" id="stat-hoy">0</div>
-      <div class="stat-label">Pomodoros hoy</div>
+      <div class="stat-label">Sesiones hoy</div>
     </div>
   </div>
 
@@ -256,12 +292,42 @@
   <div class="card historial-card">
     <div class="historial-header">
       <h3>Historial reciente</h3>
-      <button class="btn-share" onclick="compartirStats()">📤 Compartir</button>
+      <button class="btn-share" onclick="compartirStats()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline;vertical-align:middle;margin-right:4px"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13"/></svg>
+        Compartir
+      </button>
     </div>
     <div id="historial-lista" class="historial-lista">
-      <p class="empty-msg">¡Completa tu primer Pomodoro para ver el historial!</p>
+      <p class="empty-msg">Completa tu primera sesión para ver el historial.</p>
     </div>
   </div>
+
+  {% if not is_pro %}
+  <!-- MURO PRO — Estadísticas avanzadas -->
+  <div class="pro-blur-wrapper">
+    <div class="pro-blur-content">
+      <!-- Contenido simulado detrás del blur -->
+      <div class="card chart-card" style="opacity:.6">
+        <h3>Tendencia semanal de rendimiento</h3>
+        <div style="height:120px;background:linear-gradient(180deg,rgba(184,115,58,.2),transparent);border-radius:8px;margin-top:12px"></div>
+      </div>
+      <div class="card chart-card" style="opacity:.6;margin-top:12px">
+        <h3>Horas de foco acumuladas · últimos 30 días</h3>
+        <div style="height:80px;background:linear-gradient(180deg,rgba(212,146,79,.15),transparent);border-radius:8px;margin-top:12px"></div>
+      </div>
+    </div>
+    <div class="pro-blur-overlay" onclick="abrirModalPro()">
+      <div class="pro-lock-icon">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+      </div>
+      <div class="pro-lock-title">Estadísticas avanzadas</div>
+      <div class="pro-lock-sub">Tendencias, análisis de rendimiento y comparativas semanales</div>
+      <button class="pro-lock-btn">Desbloquear PRO · 4,99€</button>
+    </div>
+  </div>
+  {% endif %}
 
 </div>
 
@@ -269,7 +335,7 @@
 <div id="vista-ranking" class="vista hidden">
 
   <div class="stats-header">
-    <h2>Ranking Global 🏆</h2>
+    <h2>Ranking Global</h2>
     <p class="stats-sub" id="ranking-mes">Este mes — cargando…</p>
   </div>
 
@@ -278,23 +344,42 @@
   </div>
 
   <div class="medals-info card">
-    <h3>🎖️ Sistema de Medallas</h3>
+    <h3 style="display:flex;align-items:center;gap:8px">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>
+      Sistema de Medallas
+    </h3>
     <p class="medals-desc">
-      El primer día de cada mes, los tres usuarios con más Pomodoros del mes anterior
-      reciben medallas permanentes. ¡Se muestran junto a tu nombre en el ranking!
+      El primer día de cada mes, los tres usuarios con mayor rendimiento del mes anterior
+      reciben medallas permanentes visibles junto a su nombre.
     </p>
     <div class="medals-row">
-      <div class="medal-item"><span>🥇</span><span>Oro — 1er puesto</span></div>
-      <div class="medal-item"><span>🥈</span><span>Plata — 2o puesto</span></div>
-      <div class="medal-item"><span>🥉</span><span>Bronce — 3er puesto</span></div>
+      <div class="medal-item">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="#FCD34D" stroke="#D97706" stroke-width="1.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg>
+        <span>Oro — 1er puesto</span>
+      </div>
+      <div class="medal-item">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="#CBD5E1" stroke="#64748B" stroke-width="1.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg>
+        <span>Plata — 2° puesto</span>
+      </div>
+      <div class="medal-item">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="#FCA880" stroke="#C2510A" stroke-width="1.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg>
+        <span>Bronce — 3er puesto</span>
+      </div>
     </div>
+  </div>
+
+  <div style="text-align:center;margin-top:16px">
+    <a href="/leagues" style="display:inline-flex;align-items:center;gap:7px;color:var(--primary);font-weight:700;text-decoration:none;font-size:.88rem">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      Ver ligas y ranking completo
+    </a>
   </div>
 
 </div>
 
 <!-- ══ FOOTER ════════════════════════════════════════════════ -->
 <footer class="app-footer">
-  <span>© 2026 Santiago Jiménez Téllez. Todos los derechos reservados.</span>
+  <span>© 2026 Santiago Jiménez Téllez & Foco Studio. Todos los derechos reservados.</span>
   <span class="footer-sep">·</span>
   <a href="/privacy">Política de Privacidad</a>
   <span class="footer-sep">·</span>
@@ -341,6 +426,58 @@
     </div>
   </div>
 </div>
+
+<!-- ══ MODAL PRO ═════════════════════════════════════════════ -->
+<div id="modal-pro" class="modal-overlay hidden" onclick="cerrarModalPro(event)">
+  <div class="modal-card" style="max-width:400px">
+    <div style="text-align:center;margin-bottom:20px">
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" style="margin:0 auto 8px;display:block">
+        <path d="M3 18h18l-2-8-4 4-3-8-3 8-4-4z" fill="#FCD34D" stroke="#F59E0B" stroke-width="1.5"/>
+      </svg>
+      <div style="font-size:1.3rem;font-weight:800;color:var(--text)">Focumo PRO</div>
+      <div style="font-size:.82rem;color:var(--muted);margin-top:4px">Un único pago. Acceso de por vida.</div>
+    </div>
+    <ul style="list-style:none;padding:0;margin-bottom:24px;display:flex;flex-direction:column;gap:9px">
+      <li style="display:flex;align-items:center;gap:10px;font-size:.87rem;color:var(--text)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#7A9E7E" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+        Ligas Oro y Diamante desbloqueadas
+      </li>
+      <li style="display:flex;align-items:center;gap:10px;font-size:.87rem;color:var(--text)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#7A9E7E" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+        Coronita en tu perfil y ranking
+      </li>
+      <li style="display:flex;align-items:center;gap:10px;font-size:.87rem;color:var(--text)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#7A9E7E" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+        Streak Shield — protege tu racha
+      </li>
+      <li style="display:flex;align-items:center;gap:10px;font-size:.87rem;color:var(--text)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#7A9E7E" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+        Estadísticas avanzadas e historial ilimitado
+      </li>
+      <li style="display:flex;align-items:center;gap:10px;font-size:.87rem;color:var(--text)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#7A9E7E" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+        Salas de estudio privadas
+      </li>
+    </ul>
+    <button onclick="cerrarModalPro()" style="width:100%;background:var(--primary);color:#fff;border:none;border-radius:14px;padding:14px;font-size:1rem;font-weight:800;cursor:pointer;letter-spacing:.01em">
+      Hacerme PRO — 4,99€
+    </button>
+    <p style="text-align:center;font-size:.72rem;color:var(--muted);margin-top:10px">
+      Pago único. Sin suscripción. Sin sorpresas.
+    </p>
+  </div>
+</div>
+
+<script>
+function abrirModalPro() {
+  document.getElementById('modal-pro').classList.remove('hidden');
+}
+function cerrarModalPro(e) {
+  if (!e || e.target.id === 'modal-pro') {
+    document.getElementById('modal-pro').classList.add('hidden');
+  }
+}
+</script>
 
 <script src="/static/app.js"></script>
 </body>
