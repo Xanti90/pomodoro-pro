@@ -4,11 +4,92 @@
    © 2026 Santiago Jiménez Téllez
    ════════════════════════════════════════════ */
 
+// ── i18n ───────────────────────────────────────────────────
+const _LANG = navigator.language?.startsWith('es') ? 'es' : 'en';
+const _LOCALE_DATE = _LANG === 'es' ? 'es-ES' : 'en-US';
+
+const _TR = {
+  es: {
+    modoTrabajo:     'Enfócate',
+    modoDescansoC:   'Descansa',
+    modoDescansoL:   'Recarga',
+    sesionCompletada:'Sesión completada',
+    minFocusIn:      (min, cat) => `${min} min de foco en "${cat}"`,
+    notifSesion:     (min, cat) => `${min} minutos de ${cat}.`,
+    descansoCompletado: 'Descanso completado',
+    vuelveTrabajo:   'Vuelve al trabajo cuando estés listo.',
+    notifDescanso:   'Vuelve al trabajo.',
+    tiempoEnfoque:   'de enfoque',
+    tuIndicador:     '(tú)',
+    rankingVacio:    '¡Sé el primero en completar un Pomodoro este mes!',
+    rankingError:    'Error cargando ranking.',
+    historialVacio:  '¡Completa tu primer Pomodoro para ver el historial!',
+    heatmapTitle:    (iso, n) => `${iso}: ${n} pomodoros`,
+    heatmapTotal:    (n) => `— ${n} pomodoros este año`,
+    statsCopiadas:   'Stats copiadas al portapapeles',
+    shareTitle:      'Mis stats de Focumo',
+    shareText:       (total, horas, racha, hoy) =>
+      `Mi productividad en Focumo:\n\n` +
+      `${total} Pomodoros completados\n` +
+      `${horas} horas de enfoque total\n` +
+      `${racha} dias de racha\n` +
+      `${hoy} Pomodoros hoy\n\n` +
+      `Unete gratis en focumo.app\n#Focumo #ProductividadReal #PomodoroTechnique`,
+    mundialVacio:    'Aun no hay suficientes datos internacionales.',
+    mundialError:    'Error cargando ranking mundial.',
+    mundialHoras:    (h) => `${h}h de enfoque`,
+  },
+  en: {
+    modoTrabajo:     'Focus',
+    modoDescansoC:   'Short Break',
+    modoDescansoL:   'Long Break',
+    sesionCompletada:'Session complete',
+    minFocusIn:      (min, cat) => `${min} min of focus on "${cat}"`,
+    notifSesion:     (min, cat) => `${min} minutes of ${cat}.`,
+    descansoCompletado: 'Break complete',
+    vuelveTrabajo:   'Back to work when you\'re ready.',
+    notifDescanso:   'Back to work.',
+    tiempoEnfoque:   'of focus',
+    tuIndicador:     '(you)',
+    rankingVacio:    'Be the first to complete a Pomodoro this month!',
+    rankingError:    'Error loading ranking.',
+    historialVacio:  'Complete your first Pomodoro to see history!',
+    heatmapTitle:    (iso, n) => `${iso}: ${n} pomodoros`,
+    heatmapTotal:    (n) => `— ${n} pomodoros this year`,
+    statsCopiadas:   'Stats copied to clipboard',
+    shareTitle:      'My Focumo stats',
+    shareText:       (total, horas, racha, hoy) =>
+      `My productivity on Focumo:\n\n` +
+      `${total} Pomodoros completed\n` +
+      `${horas} hours of total focus\n` +
+      `${racha} day streak\n` +
+      `${hoy} Pomodoros today\n\n` +
+      `Join free at focumo.app\n#Focumo #RealProductivity #PomodoroTechnique`,
+    mundialVacio:    'Not enough international data yet.',
+    mundialError:    'Error loading world ranking.',
+    mundialHoras:    (h) => `${h}h of focus`,
+  },
+};
+
+function t(key, ...args) {
+  const val = _TR[_LANG]?.[key] ?? _TR['es'][key];
+  return typeof val === 'function' ? val(...args) : val;
+}
+
+// Aplica traducciones a atributos data-i18n del DOM
+function applyI18n() {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.dataset.i18n;
+    const translation = t(key);
+    if (translation && typeof translation === 'string') el.textContent = translation;
+  });
+}
+
 // ── ESTADO ─────────────────────────────────────────────────
 const MODOS = {
-  'trabajo':        { duracion: 25, label: 'Enfócate', clase: '',        emoji: '' },
-  'descanso-corto': { duracion: 5,  label: 'Descansa', clase: 'break-s', emoji: '' },
-  'descanso-largo': { duracion: 15, label: 'Recarga',  clase: 'break-l', emoji: '' },
+  'trabajo':        { duracion: 25, label: t('modoTrabajo'),   clase: '',        emoji: '' },
+  'descanso-corto': { duracion: 5,  label: t('modoDescansoC'), clase: 'break-s', emoji: '' },
+  'descanso-largo': { duracion: 15, label: t('modoDescansoL'), clase: 'break-l', emoji: '' },
 };
 
 const CIRC = 804; // 2π × 128 (nuevo radio)
@@ -41,6 +122,7 @@ const elNota     = document.getElementById('nota-input');
 
 // ── INICIO ─────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  applyI18n();
   generarTicksRing();
   actualizarDisplay();
   cargarPomodorosHoy();
@@ -61,16 +143,19 @@ document.addEventListener('DOMContentLoaded', () => {
 // ── NAVEGACIÓN ─────────────────────────────────────────────
 function mostrarVista(v) {
   document.querySelectorAll('.vista').forEach(el => el.classList.add('hidden'));
-  document.getElementById(`vista-${v}`).classList.remove('hidden');
+  const target = document.getElementById(`vista-${v}`);
+  if (target) target.classList.remove('hidden');
   document.querySelectorAll('.nav-btn').forEach((b, i) => {
     b.classList.toggle('active',
-      (i === 0 && v === 'timer') ||
-      (i === 1 && v === 'stats') ||
-      (i === 2 && v === 'ranking')
+      (i === 0 && v === 'timer')   ||
+      (i === 1 && v === 'stats')   ||
+      (i === 2 && v === 'ranking') ||
+      (i === 3 && v === 'mundial')
     );
   });
   if (v === 'stats')   cargarStats();
   if (v === 'ranking') cargarRanking();
+  if (v === 'mundial') cargarMundial();
 }
 
 // ── MENÚS ──────────────────────────────────────────────────
@@ -138,6 +223,7 @@ function iniciarTimer() {
   intervalo = setInterval(tick, 1000);
   cancelAnimationFrame(rafId);
   rafId = requestAnimationFrame(rafFrame);
+  timerStartPulse();
 }
 
 function pararTimer() {
@@ -263,10 +349,10 @@ async function finSesion(saltada = false) {
 
     reproducirSonido();
     ringCompletionPulse();
-    mostrarSiri('', 'Sesión completada', `${cfg.duracion} min de foco en "${categoria}"`);
+    mostrarSiri('', t('sesionCompletada'), t('minFocusIn', cfg.duracion, categoria));
 
     await guardarSesion({ tipo: 'trabajo', categoria, duracion: cfg.duracion, nota: elNota.value.trim() });
-    await enviarNotificacion('Sesión completada', `${cfg.duracion} minutos de ${categoria}.`);
+    await enviarNotificacion(t('sesionCompletada'), t('notifSesion', cfg.duracion, categoria));
 
     const siguienteModo = rondaActual < 4 ? 'descanso-corto' : 'descanso-largo';
     rondaActual = rondaActual < 4 ? rondaActual + 1 : 1;
@@ -275,9 +361,9 @@ async function finSesion(saltada = false) {
 
   } else if (modo !== 'trabajo' && !saltada) {
     reproducirSonido();
-    mostrarSiri('', 'Descanso completado', 'Vuelve al trabajo cuando estés listo.');
+    mostrarSiri('', t('descansoCompletado'), t('vuelveTrabajo'));
     await guardarSesion({ tipo: modo, categoria: modo, duracion: cfg.duracion, nota: '' });
-    await enviarNotificacion('Descanso completado', 'Vuelve al trabajo.');
+    await enviarNotificacion(t('descansoCompletado'), t('notifDescanso'));
     setTimeout(() => cambiarModo('trabajo'), 3200);
 
   } else {
@@ -615,14 +701,14 @@ function renderHistorial(sesiones) {
   const trabajos = sesiones.filter(s => s.tipo === 'trabajo');
 
   if (!trabajos.length) {
-    lista.innerHTML = '<p class="empty-msg">¡Completa tu primer Pomodoro para ver el historial!</p>';
+    lista.innerHTML = `<p class="empty-msg">${t('historialVacio')}</p>`;
     return;
   }
 
   lista.innerHTML = trabajos.slice(0, 20).map(s => {
     const fecha = new Date(s.fecha);
-    const hora  = fecha.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-    const dia   = fecha.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
+    const hora  = fecha.toLocaleTimeString(_LOCALE_DATE, { hour: '2-digit', minute: '2-digit' });
+    const dia   = fecha.toLocaleDateString(_LOCALE_DATE, { day: '2-digit', month: 'short' });
     return `
       <div class="historial-item">
         <div>
@@ -667,14 +753,14 @@ function renderHeatmap(data) {
     else if (n >= 5) nivel = 3;
     else if (n >= 3) nivel = 2;
     else if (n >= 1) nivel = 1;
-    celdas.push(`<div class="heatmap-cell hm-${nivel}" title="${iso}: ${n} pomodoros"></div>`);
+    celdas.push(`<div class="heatmap-cell hm-${nivel}" title="${t('heatmapTitle', iso, n)}"></div>`);
     cur.setDate(cur.getDate() + 1);
   }
 
   grid.innerHTML = celdas.join('');
 
   const totalPom = Object.values(data).reduce((a, b) => a + b, 0);
-  if (total) total.textContent = totalPom ? `— ${totalPom} pomodoros este año` : '';
+  if (total) total.textContent = totalPom ? t('heatmapTotal', totalPom) : '';
 }
 
 // ── CATEGORÍAS PERSONALIZADAS ─────────────────────────────
@@ -752,12 +838,12 @@ async function cargarRanking() {
     renderRanking(ranking);
 
     const hoy = new Date();
-    const mes = hoy.toLocaleString('es-ES', { month: 'long', year: 'numeric' });
+    const mes = hoy.toLocaleString(_LOCALE_DATE, { month: 'long', year: 'numeric' });
     const el  = document.getElementById('ranking-mes');
     if (el) el.textContent = `${mes.charAt(0).toUpperCase() + mes.slice(1)}`;
   } catch (e) {
     document.getElementById('ranking-lista').innerHTML =
-      '<p class="empty-msg">Error cargando ranking.</p>';
+      `<p class="empty-msg">${t('rankingError')}</p>`;
   }
 }
 
@@ -766,36 +852,110 @@ function renderRanking(ranking) {
   if (!lista) return;
 
   if (!ranking.length) {
-    lista.innerHTML = '<p class="empty-msg">¡Sé el primero en completar un Pomodoro este mes!</p>';
+    lista.innerHTML = `<p class="empty-msg">${t('rankingVacio')}</p>`;
     return;
   }
 
-  const medalEmoji = { gold: '🥇', silver: '🥈', bronze: '🥉' };
-  const rankIcon   = ['🥇', '🥈', '🥉'];
+  const rankMedalSVG = {
+    gold:   `<svg width="18" height="18" viewBox="0 0 24 24" fill="#FCD34D" stroke="#D97706" stroke-width="1.2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg>`,
+    silver: `<svg width="18" height="18" viewBox="0 0 24 24" fill="#CBD5E1" stroke="#64748B" stroke-width="1.2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg>`,
+    bronze: `<svg width="18" height="18" viewBox="0 0 24 24" fill="#FCA880" stroke="#C2510A" stroke-width="1.2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg>`,
+  };
+  const rankPodium = [rankMedalSVG.gold, rankMedalSVG.silver, rankMedalSVG.bronze];
+
+  const countryFlag = (cc) => {
+    if (!cc) return '';
+    const flags = { es:'🇪🇸',us:'🇺🇸',mx:'🇲🇽',gb:'🇬🇧',de:'🇩🇪',fr:'🇫🇷',
+                    br:'🇧🇷',ar:'🇦🇷',co:'🇨🇴',in:'🇮🇳',jp:'🇯🇵',kr:'🇰🇷',
+                    ca:'🇨🇦',au:'🇦🇺',it:'🇮🇹',pt:'🇵🇹',nl:'🇳🇱',se:'🇸🇪',
+                    pl:'🇵🇱',tr:'🇹🇷',ua:'🇺🇦',ng:'🇳🇬',za:'🇿🇦',cn:'🇨🇳' };
+    return flags[cc.toLowerCase()] || '';
+  };
 
   lista.innerHTML = ranking.map(u => {
-    const horas  = Math.floor((u.minutos || 0) / 60);
-    const mins   = (u.minutos || 0) % 60;
-    const tiempo = horas ? `${horas}h ${mins}m` : `${mins}m`;
-    const medBadges = (u.medals || []).slice(0, 3).map(t =>
-      `<span class="medal-badge medal-${t}">${medalEmoji[t]}</span>`
+    const horas    = Math.floor((u.minutos || 0) / 60);
+    const mins     = (u.minutos || 0) % 60;
+    const tiempo   = horas ? `${horas}h ${mins}m` : `${mins}m`;
+    const medBadges = (u.medals || []).slice(0, 3).map(m =>
+      `<span class="medal-badge medal-${m}">${rankMedalSVG[m] || ''}</span>`
     ).join('');
-    const avatar = u.avatar_url
+    const flag     = u.country_code ? `<span class="rank-flag">${countryFlag(u.country_code)}</span>` : '';
+    const avatar   = u.avatar_url
       ? `<img src="${u.avatar_url}" class="rank-avatar" alt="${u.name}">`
       : `<div class="rank-avatar-text">${(u.name || 'U')[0].toUpperCase()}</div>`;
-    const rankDisp = u.rank <= 3 ? rankIcon[u.rank - 1] : `#${u.rank}`;
+    const rankDisp = u.rank <= 3 ? rankPodium[u.rank - 1] : `<span class="rank-num">#${u.rank}</span>`;
     const yoClass  = u.es_yo ? ' rank-me' : '';
     return `
       <div class="ranking-item rank-${u.rank}${yoClass}">
         <div class="rank-pos">${rankDisp}</div>
         ${avatar}
         <div class="rank-info">
-          <div class="rank-name">${u.name} ${medBadges}${u.es_yo ? ' <span class="rank-yo">(tú)</span>' : ''}</div>
-          <div class="rank-time">${tiempo} de enfoque</div>
+          <div class="rank-name">${flag}${u.name} ${medBadges}${u.es_yo ? ` <span class="rank-yo">${t('tuIndicador')}</span>` : ''}</div>
+          <div class="rank-time">${tiempo} ${t('tiempoEnfoque')}</div>
         </div>
-        <div class="rank-score">${u.pomodoros} 🍅</div>
+        <div class="rank-score">${u.pomodoros}
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="var(--primary)" stroke="none" style="vertical-align:middle;margin-left:2px"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/></svg>
+        </div>
       </div>`;
   }).join('');
+}
+
+// ── RANKING MUNDIAL ───────────────────────────────────────
+let _mundialLoaded = false;
+
+async function cargarMundial() {
+  if (_mundialLoaded) return;
+  try {
+    const data = await fetch('/api/world-ranking').then(r => r.json());
+    renderMundial(data);
+    _mundialLoaded = true;
+  } catch (e) {
+    const el = document.getElementById('mundial-lista');
+    if (el) el.innerHTML = `<p class="empty-msg">${t('mundialError')}</p>`;
+  }
+}
+
+function renderMundial(data) {
+  const lista = document.getElementById('mundial-lista');
+  if (!lista) return;
+
+  if (!data.length) {
+    lista.innerHTML = `<p class="empty-msg">${t('mundialVacio')}</p>`;
+    return;
+  }
+
+  const maxPom = data[0].pomodoros || 1;
+
+  lista.innerHTML = data.map((c, idx) => {
+    const horas   = Math.floor((c.minutos || 0) / 60);
+    const barPct  = Math.round((c.pomodoros / maxPom) * 100);
+    const podColor = idx === 0 ? '#FCD34D' : idx === 1 ? '#CBD5E1' : idx === 2 ? '#FCA880' : 'var(--primary)';
+    return `
+      <div class="mundial-item" style="--delay:${idx * 60}ms">
+        <div class="mundial-rank" style="color:${podColor}">${idx < 3 ? ['1st','2nd','3rd'][idx] : `#${idx+1}`}</div>
+        <div class="mundial-flag">${c.flag}</div>
+        <div class="mundial-info">
+          <div class="mundial-name">${c.name}</div>
+          <div class="mundial-bar-wrap">
+            <div class="mundial-bar" style="width:${barPct}%;background:${podColor}"></div>
+          </div>
+          <div class="mundial-sub">${t('mundialHoras', horas)} · ${c.usuarios} usuarios</div>
+        </div>
+        <div class="mundial-score">${c.pomodoros.toLocaleString()}</div>
+      </div>`;
+  }).join('');
+
+  // Animar barras con GSAP si disponible
+  if (typeof gsap !== 'undefined') {
+    gsap.fromTo('.mundial-bar',
+      { scaleX: 0, transformOrigin: 'left center' },
+      { scaleX: 1, duration: 0.8, ease: 'power3.out', stagger: 0.06 }
+    );
+    gsap.fromTo('.mundial-item',
+      { opacity: 0, y: 16 },
+      { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out', stagger: 0.07 }
+    );
+  }
 }
 
 // ── NOTIFICACIONES NAVEGADOR ──────────────────────────────
@@ -830,20 +990,15 @@ async function compartirStats() {
     const racha = stats.racha || 0;
     const hoy   = stats.hoy   || 0;
 
-    const texto = `🎯 Mi productividad en Focumo:\n\n` +
-      `✅ ${total} Pomodoros completados\n` +
-      `⏱️ ${horas} horas de enfoque total\n` +
-      `🔥 ${racha} días de racha\n` +
-      `📅 ${hoy} Pomodoros hoy\n\n` +
-      `¡Únete gratis en focumo.app 🍅\n#Focumo #ProductividadReal #PomodoroTechnique`;
+    const texto = t('shareText', total, horas, racha, hoy);
 
     if (navigator.share) {
-      await navigator.share({ title: 'Mis stats de Focumo', text: texto });
+      await navigator.share({ title: t('shareTitle'), text: texto });
     } else if (navigator.clipboard) {
       await navigator.clipboard.writeText(texto);
-      mostrarToast('📋 Stats copiadas al portapapeles');
+      mostrarToast(t('statsCopiadas'));
     } else {
-      prompt('Copia tu resumen:', texto);
+      prompt(t('shareTitle') + ':', texto);
     }
   } catch (e) {
     if (e.name !== 'AbortError') console.error('Error compartiendo:', e);
@@ -1054,11 +1209,58 @@ function initGSAP() {
   }
   gsap.from('.category-card', { y: 14, opacity: 0, duration: 0.5, ease: 'power2.out', delay: 0.05 });
 
-  // ── 6. Ring container — pop al iniciar sesión ─────────────
+  // ── 6. Ring container — pop al cargar ────────────────────
   const ringContainer = document.getElementById('ring-container');
   if (ringContainer) {
     gsap.from(ringContainer, { scale: 0.88, opacity: 0, duration: 0.7, ease: 'elastic.out(1, 0.6)', delay: 0.2 });
   }
+
+  // ── 7. TIMER — Magnetic hover en el ring ─────────────────
+  const ringWrap = document.getElementById('ring-container');
+  if (ringWrap) {
+    ringWrap.addEventListener('mousemove', (e) => {
+      const rect = ringWrap.getBoundingClientRect();
+      const cx   = rect.left + rect.width  / 2;
+      const cy   = rect.top  + rect.height / 2;
+      const dx   = (e.clientX - cx) / (rect.width  / 2);
+      const dy   = (e.clientY - cy) / (rect.height / 2);
+      gsap.to(ringWrap, {
+        x: dx * 6, y: dy * 4,
+        rotateX: -dy * 5, rotateY: dx * 5,
+        transformPerspective: 800,
+        duration: 0.4, ease: 'power2.out',
+      });
+    });
+    ringWrap.addEventListener('mouseleave', () => {
+      gsap.to(ringWrap, {
+        x: 0, y: 0, rotateX: 0, rotateY: 0,
+        duration: 0.7, ease: 'elastic.out(1, 0.5)',
+      });
+    });
+  }
+
+  // ── 8. MODE PILLS — spring + color flash ─────────────────
+  document.querySelectorAll('.mode-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      gsap.fromTo(pill,
+        { scale: 0.88 },
+        { scale: 1, duration: 0.5, ease: 'elastic.out(1.4, 0.5)' }
+      );
+    });
+  });
+
+  // ── 9. Category buttons — subtle pop ─────────────────────
+  document.querySelectorAll('.cat-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      gsap.fromTo(btn,
+        { scale: 0.9 },
+        { scale: 1, duration: 0.45, ease: 'elastic.out(1.3, 0.5)' }
+      );
+    });
+  });
+
+  // ── 10. Tilt en ranking items (lazy, cuando aparecen) ─────
+  initTilt('.ranking-item');
 }
 
 // ── TILT 3D helper ────────────────────────────────────────────
@@ -1108,9 +1310,10 @@ mostrarVista = function(v) {
   // Actualizar nav buttons
   document.querySelectorAll('.nav-btn').forEach((b, i) => {
     b.classList.toggle('active',
-      (i === 0 && v === 'timer') ||
-      (i === 1 && v === 'stats') ||
-      (i === 2 && v === 'ranking')
+      (i === 0 && v === 'timer')   ||
+      (i === 1 && v === 'stats')   ||
+      (i === 2 && v === 'ranking') ||
+      (i === 3 && v === 'mundial')
     );
   });
 
@@ -1132,17 +1335,51 @@ mostrarVista = function(v) {
 
   if (v === 'stats')   cargarStats();
   if (v === 'ranking') cargarRanking();
+  if (v === 'mundial') cargarMundial();
 };
 
 // ── Ring pulse al completar una sesión ───────────────────────
 function ringCompletionPulse() {
   if (typeof gsap === 'undefined') return;
-  const ring = document.getElementById('ring-container');
+  const ring     = document.getElementById('ring-container');
+  const ringFill = document.getElementById('ring-fill');
+  const dot      = document.getElementById('ring-dot');
+  const label    = document.getElementById('timer-label');
   if (!ring) return;
-  gsap.fromTo(ring,
-    { scale: 1 },
-    { scale: 1.04, duration: 0.18, ease: 'power2.out', yoyo: true, repeat: 3 }
-  );
+
+  // Secuencia: expand → contraction → settle
+  const tl = gsap.timeline();
+  tl.to(ring,     { scale: 1.07, duration: 0.22, ease: 'power2.out' })
+    .to(ring,     { scale: 0.96, duration: 0.14, ease: 'power3.in' })
+    .to(ring,     { scale: 1,    duration: 0.6,  ease: 'elastic.out(1.2, 0.5)' });
+
+  // Ring fill flash → green momentáneo
+  if (ringFill) {
+    gsap.fromTo(ringFill,
+      { filter: 'drop-shadow(0 0 18px #7ecb7e) brightness(1.6)' },
+      { filter: 'drop-shadow(0 0 0px transparent) brightness(1)', duration: 1.2, ease: 'power2.out', delay: 0.05 }
+    );
+  }
+  // Dot burst
+  if (dot) {
+    gsap.fromTo(dot, { r: 9 }, { r: 16, duration: 0.18, ease: 'power3.out', yoyo: true, repeat: 1 });
+  }
+  // Label shake
+  if (label) {
+    gsap.fromTo(label,
+      { y: 0 },
+      { y: -6, duration: 0.12, ease: 'power2.out', yoyo: true, repeat: 3 }
+    );
+  }
+}
+
+// ── Timer start burst ─────────────────────────────────────────
+function timerStartPulse() {
+  if (typeof gsap === 'undefined') return;
+  const playBtn  = document.getElementById('btn-play');
+  const ringWrap = document.getElementById('ring-container');
+  if (playBtn)  gsap.fromTo(playBtn,  { scale: 0.82 }, { scale: 1, duration: 0.55, ease: 'elastic.out(1.5, 0.45)' });
+  if (ringWrap) gsap.fromTo(ringWrap, { scale: 0.97 }, { scale: 1, duration: 0.4,  ease: 'back.out(2.5)' });
 }
 
 // ── Arranque del motor GSAP ───────────────────────────────────

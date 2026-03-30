@@ -172,6 +172,7 @@ def init_db() -> None:
     _ensure_column(db, "users", "plan", "TEXT NOT NULL DEFAULT 'free'")
     _ensure_column(db, "users", "pro_expires_at", "TIMESTAMP")
     _ensure_column(db, "users", "referral_code", "TEXT UNIQUE")
+    _ensure_column(db, "users", "country_code", "TEXT DEFAULT 'es'")
     db.commit()
     db.close()
     _migrar_json()
@@ -677,7 +678,7 @@ def leaderboard():
     mes_fin = hoy.isoformat()
     db      = get_db()
     rows    = db.execute("""
-        SELECT u.id, u.name, u.avatar_url,
+        SELECT u.id, u.name, u.avatar_url, u.country_code,
                COUNT(s.id) as pomodoros,
                SUM(s.duracion) as minutos
         FROM users u
@@ -694,14 +695,69 @@ def leaderboard():
             "SELECT tipo FROM medals WHERE user_id=? ORDER BY mes DESC LIMIT 3", (uid,)
         ).fetchall()
         result.append({
-            "rank":      i + 1,
-            "user_id":   uid,
-            "name":      r["name"],
-            "avatar_url":r["avatar_url"],
-            "pomodoros": r["pomodoros"] or 0,
-            "minutos":   r["minutos"]   or 0,
-            "medals":    [m["tipo"] for m in medallas],
-            "es_yo":     uid == session["user_id"],
+            "rank":         i + 1,
+            "user_id":      uid,
+            "name":         r["name"],
+            "avatar_url":   r["avatar_url"],
+            "country_code": r["country_code"] or "es",
+            "pomodoros":    r["pomodoros"] or 0,
+            "minutos":      r["minutos"]   or 0,
+            "medals":       [m["tipo"] for m in medallas],
+            "es_yo":        uid == session["user_id"],
+        })
+    return jsonify(result)
+
+
+@app.route("/api/world-ranking")
+@login_required
+def world_ranking():
+    """Ranking Mundial: agrega sesiones por país, top 10 países."""
+    db   = get_db()
+    rows = db.execute("""
+        SELECT u.country_code,
+               COUNT(s.id)       AS pomodoros,
+               SUM(s.duracion)   AS minutos,
+               COUNT(DISTINCT u.id) AS usuarios
+        FROM sessions s
+        JOIN users u ON u.id = s.user_id
+        WHERE s.tipo = 'trabajo'
+        GROUP BY u.country_code
+        ORDER BY pomodoros DESC
+        LIMIT 15
+    """).fetchall()
+
+    COUNTRY_FLAGS = {
+        "es": "🇪🇸", "us": "🇺🇸", "mx": "🇲🇽", "gb": "🇬🇧",
+        "de": "🇩🇪", "fr": "🇫🇷", "br": "🇧🇷", "ar": "🇦🇷",
+        "co": "🇨🇴", "in": "🇮🇳", "jp": "🇯🇵", "kr": "🇰🇷",
+        "ca": "🇨🇦", "au": "🇦🇺", "it": "🇮🇹", "pt": "🇵🇹",
+        "nl": "🇳🇱", "se": "🇸🇪", "pl": "🇵🇱", "tr": "🇹🇷",
+        "ua": "🇺🇦", "ng": "🇳🇬", "za": "🇿🇦", "eg": "🇪🇬",
+        "cn": "🇨🇳", "ru": "🇷🇺", "id": "🇮🇩", "ph": "🇵🇭",
+    }
+    COUNTRY_NAMES = {
+        "es": "España",       "us": "Estados Unidos", "mx": "México",
+        "gb": "Reino Unido",  "de": "Alemania",        "fr": "Francia",
+        "br": "Brasil",       "ar": "Argentina",       "co": "Colombia",
+        "in": "India",        "jp": "Japón",            "kr": "Corea del Sur",
+        "ca": "Canadá",       "au": "Australia",        "it": "Italia",
+        "pt": "Portugal",     "nl": "Países Bajos",     "se": "Suecia",
+        "pl": "Polonia",      "tr": "Turquía",          "ua": "Ucrania",
+        "ng": "Nigeria",      "za": "Sudáfrica",        "eg": "Egipto",
+        "cn": "China",        "ru": "Rusia",            "id": "Indonesia",
+        "ph": "Filipinas",
+    }
+    result = []
+    for i, r in enumerate(rows):
+        cc = (r["country_code"] or "es").lower()
+        result.append({
+            "rank":        i + 1,
+            "country_code": cc,
+            "flag":        COUNTRY_FLAGS.get(cc, "🌍"),
+            "name":        COUNTRY_NAMES.get(cc, cc.upper()),
+            "pomodoros":   r["pomodoros"] or 0,
+            "minutos":     r["minutos"]   or 0,
+            "usuarios":    r["usuarios"]  or 0,
         })
     return jsonify(result)
 

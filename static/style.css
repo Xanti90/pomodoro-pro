@@ -765,3 +765,101 @@ a.nav-btn:hover { background: var(--surface); }
 
 /* ══ NAV ICON BTN SVG ════════════════════════════════════════ */
 .nav-icon-btn svg { display: block; }
+
+/* ══ RANK FLAG & NUM ════════════════════════════════════════ */
+.rank-flag { font-size: 1.1rem; line-height: 1; }
+.rank-num  { font-size: 1rem; font-weight: 700; color: var(--muted); }
+
+/* ══ RANKING MUNDIAL ════════════════════════════════════════ */
+.mundial-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.mundial-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  transition: box-shadow .2s, transform .2s;
+  will-change: transform;
+}
+.mundial-item:hover {
+  box-shadow: 0 6px 24px rgba(184,115,58,.14);
+  transform: translateY(-2px);
+}
+
+.mundial-rank {
+  font-size: .82rem;
+  font-weight: 800;
+  width: 32px;
+  text-align: center;
+  flex-shrink: 0;
+  letter-spacing: .02em;
+}
+
+.mundial-flag {
+  font-size: 2rem;
+  line-height: 1;
+  flex-shrink: 0;
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,.15));
+}
+
+.mundial-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.mundial-name {
+  font-weight: 700;
+  font-size: .96rem;
+  color: var(--text);
+  margin-bottom: 5px;
+}
+
+.mundial-bar-wrap {
+  height: 5px;
+  background: var(--bg);
+  border-radius: 99px;
+  overflow: hidden;
+  margin-bottom: 5px;
+}
+
+.mundial-bar {
+  height: 100%;
+  border-radius: 99px;
+  transform-origin: left center;
+}
+
+.mundial-sub {
+  font-size: .75rem;
+  color: var(--muted);
+}
+
+.mundial-score {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--primary);
+  white-space: nowrap;
+  text-align: right;
+}
+
+.mundial-cta {
+  display: flex;
+  align-items: center;
+  padding: 16px 20px;
+  border: 1.5px dashed rgba(184,115,58,.3);
+  background: var(--primary-pale);
+  border-radius: var(--radius);
+}
+
+@media (max-width: 480px) {
+  .mundial-flag { font-size: 1.6rem; }
+  .mundial-item { padding: 12px 14px; gap: 10px; }
+}
