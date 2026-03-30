@@ -918,7 +918,10 @@ def leagues_page():
     user = get_current_user()
     return render_template("leagues.html", user=user,
                            google_enabled=GOOGLE_ENABLED,
-                           is_pro=is_pro(user) if user else False)
+                           is_pro=is_pro(user) if user else False,
+                           stripe_public_key=STRIPE_PUBLIC_KEY,
+                           paypal_client_id=PAYPAL_CLIENT_ID,
+                           coffee_url=COFFEE_URL)
 
 
 @app.route("/api/leagues")
