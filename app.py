@@ -201,7 +201,11 @@ def init_db() -> None:
     # Migraciones de columnas existentes (idempotentes)
     _ensure_column(db, "users", "plan", "TEXT NOT NULL DEFAULT 'free'")
     _ensure_column(db, "users", "pro_expires_at", "TIMESTAMP")
-    _ensure_column(db, "users", "referral_code", "TEXT UNIQUE")
+    _ensure_column(db, "users", "referral_code", "TEXT")
+    try:
+        db.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_referral_code ON users(referral_code)")
+    except Exception:
+        pass
     _ensure_column(db, "users", "country_code", "TEXT DEFAULT 'es'")
     db.commit()
     db.close()
@@ -299,7 +303,7 @@ def get_current_user() -> Optional[Dict]:
     uid = session.get("user_id")
     if not uid: return None
     row = get_db().execute(
-        "SELECT id,email,name,avatar_url,plan,pro_expires_at,referral_code FROM users WHERE id=?",
+        "SELECT id,email,name,avatar_url,plan,pro_expires_at FROM users WHERE id=?",
         (uid,)
     ).fetchone()
     return dict(row) if row else None
@@ -808,6 +812,9 @@ def referral_info():
     user = get_current_user()
     if not user: return jsonify({}), 401
     db      = get_db()
+    # Fetch referral_code separately (not in get_current_user to avoid crash if column missing)
+    ref_row = db.execute("SELECT referral_code FROM users WHERE id=?", (user["id"],)).fetchone()
+    user["referral_code"] = ref_row["referral_code"] if ref_row else None
     total   = db.execute(
         "SELECT COUNT(*) FROM referrals WHERE referrer_id=?",
         (user["id"],)
